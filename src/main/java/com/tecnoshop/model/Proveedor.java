@@ -7,12 +7,17 @@ import jakarta.persistence.Table;
 @Table(name = "proveedores")
 public class Proveedor {
     private int telefono;
-    private string nombre;
+    private String nombre;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
-    private string email;
+    private String email;
+
+public Proveedor() {
 }
 
-public Proveedor(int telefono, string nombre, int id, string email) {
+
+public Proveedor(int telefono, String nombre, int id, String email) {
     this.telefono = telefono;
     this.nombre = nombre;
     this.id = id;
@@ -31,7 +36,7 @@ public string getNombre() {
     return this.nombre;
 }
 
-public void setNombre(string nombre) {
+public void setNombre(String nombre) {
     this.nombre = nombre;
 }
 
@@ -47,6 +52,8 @@ public string getEmail() {
     return this.email;
 }
 
-public void setEmail(string email) {
+public void setEmail(String email) {
     this.email = email;
+}
+
 }

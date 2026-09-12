@@ -6,6 +6,8 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "productos")
 public class Producto {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
     private String nombre;
     private String descripcion;
@@ -15,7 +17,10 @@ public class Producto {
     private int stock;
     private double precioCompra;
     private double precioVenta;
+
+public Producto() {
 }
+
 
 public Producto(int id, String nombre, String descripcion, boolean disponible, String codigo, int stockMinimo, int stock, double precioCompra, double precioVenta) {
     this.id = id;
@@ -104,5 +109,7 @@ public void setPrecioVenta(double precioVenta) {
     this.precioVenta = precioVenta;
 }
 
+
+}
 
 

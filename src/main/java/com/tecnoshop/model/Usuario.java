@@ -5,13 +5,19 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "usuarios")
-public class Usuario {
+public class Usuario {\
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
     private String nombre;
     private String email;
     private String password;
     private boolean activo;
+
+
+public Usuario() {
 }
+
 
 public Usuario(int id, String nombre, String email, String password, boolean activo) {
     this.id = id;
@@ -62,4 +68,5 @@ public void setActivo(boolean activo) {
     this.activo = activo;
 }
 
+}
 
