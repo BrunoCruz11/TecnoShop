@@ -1,59 +1,71 @@
 package com.tecnoshop.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "proveedores")
 public class Proveedor {
-    private int telefono;
-    private String nombre;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
+    private int telefono;
+    private String nombre;
     private String email;
 
-public Proveedor() {
-}
+    @OneToMany(mappedBy = "proveedor")
+    private List<Compra> compras = new ArrayList<>();
 
+    public Proveedor() {
+    }
 
-public Proveedor(int telefono, String nombre, int id, String email) {
-    this.telefono = telefono;
-    this.nombre = nombre;
-    this.id = id;
-    this.email = email;
-}
+    public Proveedor(int telefono, String nombre, String email) {
+        this.telefono = telefono;
+        this.nombre = nombre;
+        this.email = email;
+    }
 
-public int getTelefono() {
-    return this.telefono;
-}
+    public int getId() {
+        return this.id;
+    }
 
-public void setTelefono(int telefono) {
-    this.telefono = telefono;
-}
+    public void setId(int id) {
+        this.id = id;
+    }
 
-public string getNombre() {
-    return this.nombre;
-}
+    public int getTelefono() {
+        return this.telefono;
+    }
 
-public void setNombre(String nombre) {
-    this.nombre = nombre;
-}
+    public void setTelefono(int telefono) {
+        this.telefono = telefono;
+    }
 
-public int getId() {
-    return this.id;
-}
+    public String getNombre() {
+        return this.nombre;
+    }
 
-public void setId(int id) {
-    this.id = id;
-}
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
 
-public string getEmail() {
-    return this.email;
-}
+    public String getEmail() {
+        return this.email;
+    }
 
-public void setEmail(String email) {
-    this.email = email;
-}
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public List<Compra> getCompras() {
+        return this.compras;
+    }
 
 }

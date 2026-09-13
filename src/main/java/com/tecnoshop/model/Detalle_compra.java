@@ -1,79 +1,89 @@
 package com.tecnoshop.model;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "Detalle_compras")
+@Table(name = "detalle_compras")
 public class Detalle_compra {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
-    private int compra_id;
+
+    @ManyToOne
+    @JoinColumn(name = "compra_id")
+    private Compra compra;
+
+    @ManyToOne
+    @JoinColumn(name = "producto_id")
+    private Producto producto;
+
     private int cantidad;
-    private double precio_unitario;
-    private int subtotal;
-    private int producto_id;
+    private double precioUnitario;
+    private double subtotal;
 
-public Detalle_compra() {
-}
+    public Detalle_compra() {
+    }
 
-public Detalle_compra(int id, int compra_id, int cantidad, double precio_unitario, int subtotal, int producto_id){
-    this.id = id;
-    this.compra_id = compra_id;
-    this.cantidad = cantidad;
-    this.precio_unitario = precio_unitario;
-    this.subtotal = subtotal;
-    this.producto_id = producto_id;
-}
+    public Detalle_compra(Compra compra, Producto producto, int cantidad, double precioUnitario, double subtotal) {
+        this.compra = compra;
+        this.producto = producto;
+        this.cantidad = cantidad;
+        this.precioUnitario = precioUnitario;
+        this.subtotal = subtotal;
+    }
 
+    public int getId() {
+        return this.id;
+    }
 
-public int getId() {
-    return this.id;
-}
+    public void setId(int id) {
+        this.id = id;
+    }
 
-public void setId(int id) {
-    this.id = id;
-}
+    public Compra getCompra() {
+        return this.compra;
+    }
 
-public int getCompra_id() {
-    return this.compra_id;
-}
+    public void setCompra(Compra compra) {
+        this.compra = compra;
+    }
 
-public void setCompra_id(int compra_id) {
-    this.compra_id = compra_id;
-}
+    public Producto getProducto() {
+        return this.producto;
+    }
 
-public int getCantidad() {
-    return this.cantidad;
-}
+    public void setProducto(Producto producto) {
+        this.producto = producto;
+    }
 
-public void setCantidad(int cantidad) {
-    this.cantidad = cantidad;
-}
+    public int getCantidad() {
+        return this.cantidad;
+    }
 
-public double getPrecio_unitario() {
-    return this.precio_unitario;
-}
+    public void setCantidad(int cantidad) {
+        this.cantidad = cantidad;
+    }
 
-public void setPrecio_unitario(double precio_unitario) {
-    this.precio_unitario = precio_unitario;
-}
+    public double getPrecioUnitario() {
+        return this.precioUnitario;
+    }
 
-public int getSubtotal() {
-    return this.subtotal;
-}
+    public void setPrecioUnitario(double precioUnitario) {
+        this.precioUnitario = precioUnitario;
+    }
 
-public void setSubtotal(int subtotal) {
-    this.subtotal = subtotal;
-}
+    public double getSubtotal() {
+        return this.subtotal;
+    }
 
-public int getProducto_id() {
-    return this.producto_id;
-}
-
-public void setProducto_id(int producto_id) {
-    this.producto_id = producto_id;
-}
+    public void setSubtotal(double subtotal) {
+        this.subtotal = subtotal;
+    }
 
 }
