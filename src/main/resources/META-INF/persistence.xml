@@ -9,6 +9,10 @@
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
 
         <class>com.tecnoshop.model.Usuario</class>
+        <class>com.tecnoshop.model.Compra</class>
+        <class>com.tecnoshop.model.Proveedor</class>
+        <class>com.tecnoshop.model.Producto</class>
+        <class>com.tecnoshop.model.Detalle_compra</class>
 
         <properties>
             <!-- Conexión a la base de datos (coincide con docker-compose.yml) -->
