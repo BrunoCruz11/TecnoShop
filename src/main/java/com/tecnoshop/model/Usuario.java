@@ -16,13 +16,12 @@ public class Usuario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
+    @OneToMany(mappedBy = "usuario")
+    private List<Compra> compras = new ArrayList<>();
     private String nombre;
     private String email;
     private String password;
     private boolean activo;
-
-    @OneToMany(mappedBy = "usuario")
-    private List<Compra> compras = new ArrayList<>();
 
     public Usuario() {
     }
