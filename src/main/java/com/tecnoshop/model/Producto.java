@@ -1,13 +1,9 @@
 package com.tecnoshop.model;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 @Entity
@@ -24,9 +20,6 @@ public class Producto {
     private int stock;
     private double precioCompra;
     private double precioVenta;
-
-    @OneToMany(mappedBy = "producto")
-    private List<Detalle_compra> detalles = new ArrayList<>();
 
     public Producto() {
     }
@@ -112,10 +105,6 @@ public class Producto {
 
     public void setPrecioVenta(double precioVenta) {
         this.precioVenta = precioVenta;
-    }
-
-    public List<Detalle_compra> getDetalles() {
-        return this.detalles;
     }
 
 }

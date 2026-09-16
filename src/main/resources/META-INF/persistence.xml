@@ -16,7 +16,7 @@
 
         <properties>
             <!-- Conexión a la base de datos (coincide con docker-compose.yml) -->
-            <property name="jakarta.persistence.jdbc.url" value="jdbc:postgresql://localhost:5432/tecnoshop_db"/>
+            <property name="jakarta.persistence.jdbc.url" value="jdbc:postgresql://localhost:5433/tecnoshop_db"/>
             <property name="jakarta.persistence.jdbc.user" value="tecnoshop"/>
             <property name="jakarta.persistence.jdbc.password" value="tecnoshop"/>
             <property name="jakarta.persistence.jdbc.driver" value="org.postgresql.Driver"/>

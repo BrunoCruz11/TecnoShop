@@ -1,13 +1,9 @@
 package com.tecnoshop.model;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 @Entity
@@ -19,9 +15,6 @@ public class Proveedor {
     private int telefono;
     private String nombre;
     private String email;
-
-    @OneToMany(mappedBy = "proveedor")
-    private List<Compra> compras = new ArrayList<>();
 
     public Proveedor() {
     }
@@ -62,10 +55,6 @@ public class Proveedor {
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public List<Compra> getCompras() {
-        return this.compras;
     }
 
 }
