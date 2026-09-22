@@ -102,6 +102,8 @@ public class ManejadorUsuario{
         }
     }
 
+
+
     public Usuario obtenerUsuarioPorEmail(String email){
         EntityManager em = HibernateUtil.getEntityManager();
         try{
@@ -114,14 +116,18 @@ public class ManejadorUsuario{
         }
     }
 
+    public boolean existeUsuario (String email){
+        EntityManager em = HibernateUtil.getEntityManager();
+        try{
+            List<Usuario> usuarioABuscar = em.createQuery("SELECT u FROM Usuario u WHERE u.email = :email", Usuario.class)
+                    .setParameter("email", email)
+                    .getResultList();
+            return !usuarioABuscar.isEmpty();
+        }finally{
+            em.close();
+        }
+    }
 
 
-
-
-
-
-
-
-    
 
 }
