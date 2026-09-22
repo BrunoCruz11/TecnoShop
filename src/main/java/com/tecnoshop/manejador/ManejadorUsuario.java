@@ -65,6 +65,61 @@ public class ManejadorUsuario{
 
 
 
+    public void eliminarUsuario(int id) {
+        EntityManager em = HibernateUtil.getEntityManager();
+        try {
+            em.getTransaction().begin();
+            Usuario usuario = em.find(Usuario.class, id);
+            if (usuario != null) {
+                em.remove(usuario);
+            }
+            em.getTransaction().commit();
+        } catch (RuntimeException e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            throw e;
+        } finally {
+            em.close();
+        }
+    }
+
+
+
+    public void actualizarUsuario(Usuario user) {
+        EntityManager em = HibernateUtil.getEntityManager();
+        try {
+            em.getTransaction().begin();
+            em.merge(user);
+            em.getTransaction().commit();
+        } catch (RuntimeException e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            throw e;
+        } finally {
+            em.close();
+        }
+    }
+
+    public Usuario obtenerUsuarioPorEmail(String email){
+        EntityManager em = HibernateUtil.getEntityManager();
+        try{
+            List<Usuario> usuarios = em.createQuery("SELECT u FROM Usuario u WHERE u.email = :email", Usuario.class)
+                    .setParameter("email", email)
+                    .getResultList();
+            return usuarios.isEmpty() ? null : usuarios.get(0);
+        }finally{
+            em.close();
+        }
+    }
+
+
+
+
+
+
+
 
 
     
