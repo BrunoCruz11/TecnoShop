@@ -3,6 +3,7 @@ package com.tecnoshop.manejador;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.tecnoshop.dto.UsuarioDTO;
 import com.tecnoshop.model.Usuario;
 import com.tecnoshop.util.HibernateUtil;
 
@@ -48,16 +49,16 @@ public class ManejadorUsuario{
         }
     }
 
-    public List<String> obtenerTodosLosUsuarios() {
+    public List<UsuarioDTO> obtenerTodosLosUsuarios() {
         EntityManager em = HibernateUtil.getEntityManager();
         try {
             List<Usuario> usuarios = em.createQuery("SELECT u FROM Usuario u", Usuario.class).getResultList();
 
-            List<String> nombresUsuarios = new ArrayList<>();
+            List<UsuarioDTO> usuariosDTO = new ArrayList<>();
             for (Usuario usuario : usuarios) {
-                nombresUsuarios.add(usuario.getNombre());
+                usuariosDTO.add(new UsuarioDTO(usuario.getId(), usuario.getNombre(), usuario.getEmail(), usuario.isActivo()));
             }
-            return nombresUsuarios;
+            return usuariosDTO;
         } finally {
             em.close();
         }

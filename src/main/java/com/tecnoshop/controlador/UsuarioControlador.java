@@ -1,5 +1,8 @@
 package com.tecnoshop.controlador;
 
+import java.util.List;
+
+import com.tecnoshop.dto.UsuarioDTO;
 import com.tecnoshop.excepciones.ExisteUsuarioException;
 import com.tecnoshop.manejador.ManejadorUsuario;
 import com.tecnoshop.model.Usuario;
@@ -27,5 +30,14 @@ public class UsuarioControlador implements IUsuarioControlador {
             MU.agregarUsuario(S);
         }
     }
+
+
+    public List<UsuarioDTO> obtenerTodosLosUsuarios(){
+        ManejadorUsuario MU = ManejadorUsuario.getInstancia();
+        return MU.obtenerTodosLosUsuarios();
+    }
+
+
+    
 
 }
