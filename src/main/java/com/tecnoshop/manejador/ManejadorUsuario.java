@@ -40,10 +40,14 @@ public class ManejadorUsuario{
     }
 
     
-    public Usuario obtenerUsuarioPorId(int id) {
+    public UsuarioDTO obtenerUsuarioPorId(int id) {
         EntityManager em = HibernateUtil.getEntityManager();
         try {
-            return em.find(Usuario.class, id);
+            Usuario usuario = em.find(Usuario.class, id);
+            if (usuario == null) {
+                return null;
+            }
+            return new UsuarioDTO(usuario.getId(), usuario.getNombre(), usuario.getEmail(), usuario.isActivo());
         } finally {
             em.close();
         }
@@ -117,6 +121,7 @@ public class ManejadorUsuario{
         }
     }
 
+    
     public boolean existeUsuario (String email){
         EntityManager em = HibernateUtil.getEntityManager();
         try{
@@ -129,6 +134,90 @@ public class ManejadorUsuario{
         }
     }
 
+
+    public void cambiarEstadoUsuario(int id, boolean activo){
+        EntityManager em = HibernateUtil.getEntityManager();
+        try{
+            em.getTransaction().begin();
+            Usuario usuario = em.find(Usuario.class, id);
+            if(usuario != null){
+                usuario.setActivo(activo);
+            }
+            em.getTransaction().commit();
+
+        }catch (RuntimeException e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            throw e;
+        } finally {
+            em.close();
+        }
+    }
+
+
+    public void cambiarNombreUsuario(int id, String nombre){
+        EntityManager em = HibernateUtil.getEntityManager();
+        try{
+            em.getTransaction().begin();
+            Usuario usuario = em.find(Usuario.class, id);
+            if(usuario != null){
+                 usuario.setNombre(nombre);
+            }
+            em.getTransaction().commit();
+        }catch (RuntimeException e){
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            throw e;
+        } finally {
+            em.close();
+        }
+      
+    }
+
+
+
+        public void cambiarEmailUsuario(int id, String email){
+        EntityManager em = HibernateUtil.getEntityManager();
+        try{
+            em.getTransaction().begin();
+            Usuario usuario = em.find(Usuario.class, id);
+            if(usuario != null){
+                usuario.setEmail(email);
+            }
+            em.getTransaction().commit();
+
+        }catch (RuntimeException e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            throw e;
+        } finally {
+            em.close();
+        }
+    }
+
+
+    public void cambiarPasswordUsuario(int id, String password){
+        EntityManager em = HibernateUtil.getEntityManager();
+        try{
+            em.getTransaction().begin();
+            Usuario usuario = em.find(Usuario.class, id);
+            if(usuario != null){
+                usuario.setPassword(password);
+            }
+            em.getTransaction().commit();
+
+        }catch (RuntimeException e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            throw e;
+        } finally {
+            em.close();
+        }
+    }
 
 
 }
