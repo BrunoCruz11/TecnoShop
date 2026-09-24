@@ -23,7 +23,7 @@ public class UsuarioControlador implements IUsuarioControlador {
         return instancia;
     }
 
-    public void registrarUsuario(String nombre, String email, String password) throws ExisteUsuarioException{
+    public void registrarUsuario(String nombre, String email, String password, boolean activo) throws ExisteUsuarioException{
         ManejadorUsuario MU = ManejadorUsuario.getInstancia();
         boolean existe= MU.existeUsuario(email);
         if(existe){
@@ -31,11 +31,16 @@ public class UsuarioControlador implements IUsuarioControlador {
         }
         else{
             String hash = BCrypt.hashpw(password, BCrypt.gensalt());
-            Usuario S = new Usuario (nombre,email,hash,true);
+            Usuario S = new Usuario (nombre,email,hash,activo);
             MU.agregarUsuario(S);
         }
     }
 
+
+    public UsuarioDTO obtenerUsuarioPorId(int id){
+        ManejadorUsuario MU = ManejadorUsuario.getInstancia();
+        return MU.obtenerUsuarioPorId(id);
+    }
 
     public List<UsuarioDTO> obtenerTodosLosUsuarios(){
         ManejadorUsuario MU = ManejadorUsuario.getInstancia();
