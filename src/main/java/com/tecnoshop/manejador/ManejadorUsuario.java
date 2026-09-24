@@ -3,6 +3,7 @@ package com.tecnoshop.manejador;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.tecnoshop.dto.UsuarioDTO;
 import com.tecnoshop.model.Usuario;
 import com.tecnoshop.util.HibernateUtil;
 
@@ -39,25 +40,29 @@ public class ManejadorUsuario{
     }
 
     
-    public Usuario obtenerUsuarioPorId(int id) {
+    public UsuarioDTO obtenerUsuarioPorId(int id) {
         EntityManager em = HibernateUtil.getEntityManager();
         try {
-            return em.find(Usuario.class, id);
+            Usuario usuario = em.find(Usuario.class, id);
+            if (usuario == null) {
+                return null;
+            }
+            return new UsuarioDTO(usuario.getId(), usuario.getNombre(), usuario.getEmail(), usuario.isActivo());
         } finally {
             em.close();
         }
     }
 
-    public List<String> obtenerTodosLosUsuarios() {
+    public List<UsuarioDTO> obtenerTodosLosUsuarios() {
         EntityManager em = HibernateUtil.getEntityManager();
         try {
             List<Usuario> usuarios = em.createQuery("SELECT u FROM Usuario u", Usuario.class).getResultList();
 
-            List<String> nombresUsuarios = new ArrayList<>();
+            List<UsuarioDTO> usuariosDTO = new ArrayList<>();
             for (Usuario usuario : usuarios) {
-                nombresUsuarios.add(usuario.getNombre());
+                usuariosDTO.add(new UsuarioDTO(usuario.getId(), usuario.getNombre(), usuario.getEmail(), usuario.isActivo()));
             }
-            return nombresUsuarios;
+            return usuariosDTO;
         } finally {
             em.close();
         }
@@ -116,6 +121,7 @@ public class ManejadorUsuario{
         }
     }
 
+    
     public boolean existeUsuario (String email){
         EntityManager em = HibernateUtil.getEntityManager();
         try{
@@ -128,6 +134,90 @@ public class ManejadorUsuario{
         }
     }
 
+
+    public void cambiarEstadoUsuario(int id, boolean activo){
+        EntityManager em = HibernateUtil.getEntityManager();
+        try{
+            em.getTransaction().begin();
+            Usuario usuario = em.find(Usuario.class, id);
+            if(usuario != null){
+                usuario.setActivo(activo);
+            }
+            em.getTransaction().commit();
+
+        }catch (RuntimeException e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            throw e;
+        } finally {
+            em.close();
+        }
+    }
+
+
+    public void cambiarNombreUsuario(int id, String nombre){
+        EntityManager em = HibernateUtil.getEntityManager();
+        try{
+            em.getTransaction().begin();
+            Usuario usuario = em.find(Usuario.class, id);
+            if(usuario != null){
+                 usuario.setNombre(nombre);
+            }
+            em.getTransaction().commit();
+        }catch (RuntimeException e){
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            throw e;
+        } finally {
+            em.close();
+        }
+      
+    }
+
+
+
+        public void cambiarEmailUsuario(int id, String email){
+        EntityManager em = HibernateUtil.getEntityManager();
+        try{
+            em.getTransaction().begin();
+            Usuario usuario = em.find(Usuario.class, id);
+            if(usuario != null){
+                usuario.setEmail(email);
+            }
+            em.getTransaction().commit();
+
+        }catch (RuntimeException e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            throw e;
+        } finally {
+            em.close();
+        }
+    }
+
+
+    public void cambiarPasswordUsuario(int id, String password){
+        EntityManager em = HibernateUtil.getEntityManager();
+        try{
+            em.getTransaction().begin();
+            Usuario usuario = em.find(Usuario.class, id);
+            if(usuario != null){
+                usuario.setPassword(password);
+            }
+            em.getTransaction().commit();
+
+        }catch (RuntimeException e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            throw e;
+        } finally {
+            em.close();
+        }
+    }
 
 
 }
