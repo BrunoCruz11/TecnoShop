@@ -70,11 +70,54 @@ public class ManejadorProveedor{
     }
 
 
-    public void actualizarProveedor(Proveedor proveedor) {
+    public void cambiarNombreProveedor(int id, String nombre) {
         EntityManager em = HibernateUtil.getEntityManager();
         try {
             em.getTransaction().begin();
-            em.merge(proveedor);
+            Proveedor proveedor = em.find(Proveedor.class, id);
+            if (proveedor != null) {
+                proveedor.setNombre(nombre);
+            }
+            em.getTransaction().commit();
+        } catch (RuntimeException e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            throw e;
+        } finally {
+            em.close();
+        }
+    }
+
+
+    public void cambiarTelefonoProveedor(int id, int telefono) {
+        EntityManager em = HibernateUtil.getEntityManager();
+        try {
+            em.getTransaction().begin();
+            Proveedor proveedor = em.find(Proveedor.class, id);
+            if (proveedor != null) {
+                proveedor.setTelefono(telefono);
+            }
+            em.getTransaction().commit();
+        } catch (RuntimeException e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            throw e;
+        } finally {
+            em.close();
+        }
+    }
+
+
+    public void cambiarEmailProveedor(int id, String email) {
+        EntityManager em = HibernateUtil.getEntityManager();
+        try {
+            em.getTransaction().begin();
+            Proveedor proveedor = em.find(Proveedor.class, id);
+            if (proveedor != null) {
+                proveedor.setEmail(email);
+            }
             em.getTransaction().commit();
         } catch (RuntimeException e) {
             if (em.getTransaction().isActive()) {
