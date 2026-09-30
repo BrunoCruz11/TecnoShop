@@ -1,6 +1,6 @@
 # TecnoShop — Back
 
-API REST para gestionar el stock y las compras de una tienda de tecnología: productos, proveedores, compras y usuarios.
+API REST para gestionar el stock y las compras de una tienda de tecnología: productos, proveedores, compras y usuarios, más un catálogo con reseñas para los clientes.
 
 Hecha en **Java 21** con **Javalin** (servidor web), **Hibernate** (acceso a la base) y **PostgreSQL**.
 
@@ -72,10 +72,12 @@ API escuchando en el puerto 8080
 
 **Dejá esta terminal abierta**: si la cerrás, se apaga el back.
 
-Al arrancar por primera vez, el back hace tres cosas solo:
+Al arrancar por primera vez, el back hace esto solo:
 - crea las tablas de la base;
-- crea el usuario `admin@tecnoshop.com` con contraseña `admin1234`;
-- carga 12 productos de ejemplo.
+- crea el usuario administrador `admin@tecnoshop.com` con contraseña `admin1234`;
+- carga datos de ejemplo: 12 productos con imagen, 5 proveedores y 7 compras (5 confirmadas, 1 pendiente y 1 cancelada).
+
+Las compras de ejemplo solo se cargan si la base no tiene ninguna compra, porque confirmarlas suma stock.
 
 ### Paso 4: levantar el front (terminal 2)
 
@@ -90,6 +92,8 @@ Abrí **http://localhost:5500** e ingresá con:
 
 - **Email:** `admin@tecnoshop.com`
 - **Contraseña:** `admin1234`
+
+Para probar como cliente, tocá **Crear cuenta** en el login: esas cuentas son de usuario normal y solo ven el catálogo.
 
 ### Para apagar todo
 
@@ -117,7 +121,7 @@ SELECT * FROM compras;
 
 Para salir: `\q`.
 
-Las tablas son `usuarios`, `proveedores`, `productos`, `compras` y `detalle_compras`. Las columnas van en minúscula, por ejemplo `stockminimo`.
+Las tablas son `usuarios`, `proveedores`, `productos`, `compras`, `detalle_compras` y `resenas`. Las columnas van en minúscula, por ejemplo `stockminimo`.
 
 ---
 
@@ -144,7 +148,7 @@ src/main/java/com/tecnoshop/
 ├── manejador/         acceso a la base de datos (Hibernate)
 ├── model/             entidades (tablas)
 ├── dto/               datos que se devuelven al front
-├── enums/             EstadoCompra (PENDIENTE, CONFIRMADA, CANCELADA)
+├── enums/             EstadoCompra (PENDIENTE, CONFIRMADA, CANCELADA) y Rol (ADMIN, USUARIO)
 ├── excepciones/       errores del dominio (NoExisteProducto, PrecioInvalido, ...)
 └── util/              configuración, validaciones, conexión y datos iniciales
 
@@ -163,17 +167,24 @@ Los requisitos funcionales están en [REQUISITOS_FUNCIONALES.md](REQUISITOS_FUNC
 
 Todas las rutas empiezan con `/api`. Hay que **iniciar sesión** para usarlas:
 
-1. `POST /api/login` con `{"email": "...", "password": "..."}` devuelve un `token`.
+1. `POST /api/login` con `{"email": "...", "password": "..."}` devuelve un `token`. `POST /api/registro` crea una cuenta y también devuelve un token.
 2. En cada petición se manda el header `Authorization: Bearer <token>`.
 
-Las únicas rutas que no piden sesión son `POST /api/login` y `GET /api/salud`.
+Hay dos roles, y un admin puede cambiar el rol de los demás desde la sección Usuarios:
+
+| Rol | Qué puede usar |
+|---|---|
+| Cualquiera, sin sesión | `POST /login`, `POST /registro`, `GET /salud` |
+| **USUARIO** (cuentas creadas con "Crear cuenta") | `GET /sesion`, el catálogo y las reseñas. El catálogo no muestra el precio de compra ni el stock exacto. |
+| **ADMIN** | Todas las rutas |
 
 | Recurso | Rutas |
 |---|---|
-| Productos | `GET /productos`, `GET /productos/por-acabar`, `GET /productos/{id}`, `POST /productos`, `PUT /productos/{id}`, `PUT /productos/{id}/disponible` |
+| Productos | `GET /productos` (incluye a qué proveedores se le compró cada producto, según las compras confirmadas), `GET /productos/por-acabar`, `GET /productos/{id}`, `POST /productos`, `PUT /productos/{id}`, `PUT /productos/{id}/disponible` |
 | Proveedores | `GET /proveedores`, `GET /proveedores/{id}`, `POST /proveedores`, `PUT /proveedores/{id}`, `DELETE /proveedores/{id}` |
 | Compras | `GET /compras` (filtros `?usuarioId=`, `?proveedorId=`, `?desde=&hasta=`), `GET /compras/{id}`, `GET /compras/{id}/detalles`, `POST /compras`, `POST /compras/{id}/detalles`, `PUT /compras/{id}/confirmar`, `PUT /compras/{id}/cancelar` |
-| Usuarios | `GET /usuarios`, `POST /usuarios`, `PUT /usuarios/{id}/activo`, `GET /sesion` |
+| Catálogo | `GET /catalogo`, `GET /catalogo/{id}` (ficha con reseñas), `POST /catalogo/{id}/resenas` (`{"puntaje": 1-5, "comentario": "..."}`; una por usuario: si ya tenía una, se reemplaza), `DELETE /resenas/{id}` (la propia; el admin puede borrar cualquiera) |
+| Usuarios | `GET /usuarios`, `POST /usuarios`, `PUT /usuarios/{id}/activo`, `PUT /usuarios/{id}/rol`, `GET /sesion` |
 
 Los errores vuelven como `{"error": "mensaje"}` con este código HTTP:
 
@@ -181,7 +192,7 @@ Los errores vuelven como `{"error": "mensaje"}` con este código HTTP:
 |---|---|
 | 400 | Datos inválidos |
 | 401 | Sin sesión, o la sesión venció |
-| 403 | Usuario inactivo |
+| 403 | Usuario inactivo, o la acción es solo para administradores |
 | 404 | No existe |
 | 409 | Duplicado o conflicto |
 | 429 | Demasiados intentos de login |
@@ -251,7 +262,7 @@ En desarrollo no hace falta configurar nada. En producción se definen en el arc
 | `JWT_SECRET` | Clave que firma las sesiones (mínimo 32 caracteres en prod) | una fija de desarrollo |
 | `JWT_HORAS` | Cuánto dura la sesión | `8` |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Primer usuario (solo si no hay ninguno) | `admin@tecnoshop.com` / `admin1234` |
-| `CARGAR_DATOS` | Cargar los productos de ejemplo | `true` |
+| `CARGAR_DATOS` | Cargar los productos, proveedores y compras de ejemplo | `true` |
 | `CORS_ORIGENES` | Qué sitios pueden llamar a la API desde el navegador | `http://localhost:5500` |
 | `CONFIAR_EN_PROXY` | Usar la IP real que manda nginx (para el límite de intentos de login) | `false` |
 | `MOSTRAR_SQL` | Mostrar las consultas SQL en la consola | `false` |
@@ -265,7 +276,7 @@ Las tablas las crean los scripts de `src/main/resources/db/migration`, que se ej
 
 Para agregar o cambiar una columna:
 
-1. Creá un archivo nuevo con el número siguiente, por ejemplo `V3__agregar_columna.sql`, con el `ALTER TABLE`.
+1. Creá un archivo nuevo con el número siguiente, por ejemplo `V5__agregar_columna.sql`, con el `ALTER TABLE`.
 2. Actualizá la entidad en `model/`.
 
 **Nunca edites un script que ya corrió**: siempre se crea uno nuevo.

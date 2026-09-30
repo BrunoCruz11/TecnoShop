@@ -22,6 +22,8 @@ public class Main {
         CargaDatos.crearAdministradorSiNoHayUsuarios();
         if (Config.CARGAR_DATOS) {
             CargaDatos.cargarProductos();
+            CargaDatos.cargarProveedores();
+            CargaDatos.cargarCompras();
         }
         ApiServidor.iniciar(Config.PUERTO);
         LOG.info("API escuchando en el puerto {}", Config.PUERTO);

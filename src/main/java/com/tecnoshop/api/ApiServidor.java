@@ -18,8 +18,10 @@ import com.tecnoshop.excepciones.ExisteUsuarioException;
 import com.tecnoshop.excepciones.NoExisteCompraException;
 import com.tecnoshop.excepciones.NoExisteProductoException;
 import com.tecnoshop.excepciones.NoExisteProveedorException;
+import com.tecnoshop.excepciones.NoExisteResenaException;
 import com.tecnoshop.excepciones.NoExisteUsuarioException;
 import com.tecnoshop.excepciones.ProveedorConComprasException;
+import com.tecnoshop.excepciones.SinPermisoException;
 import com.tecnoshop.excepciones.UsuarioInactivoException;
 import com.tecnoshop.util.Config;
 import com.tecnoshop.util.HibernateUtil;
@@ -39,7 +41,11 @@ public final class ApiServidor {
     private static final Logger LOG = LoggerFactory.getLogger(ApiServidor.class);
 
     // rutas que se pueden usar sin haber iniciado sesion
-    private static final Set<String> RUTAS_PUBLICAS = Set.of("/api/login", "/api/salud");
+    private static final Set<String> RUTAS_PUBLICAS = Set.of("/api/login", "/api/registro", "/api/salud");
+    // rutas que puede usar cualquier usuario con sesion (la sesion, el catalogo y las reseñas); las demas son solo para ADMIN
+    private static boolean esRutaDeUsuario(String ruta) {
+        return ruta.equals("/api/sesion") || ruta.equals("/api/catalogo") || ruta.startsWith("/api/catalogo/") || ruta.startsWith("/api/resenas/");
+    }
 
     private ApiServidor() {
     }
@@ -76,6 +82,9 @@ public final class ApiServidor {
                 return;
             }
             Autenticacion.verificar(ctx);
+            if (!esRutaDeUsuario(ctx.path())) {
+                Autenticacion.exigirAdmin(ctx);
+            }
         });
 
         // para que docker / el balanceador sepan si la app esta viva y la base responde
@@ -88,6 +97,7 @@ public final class ApiServidor {
         ProveedorRutas.registrar(app);
         UsuarioRutas.registrar(app);
         CompraRutas.registrar(app);
+        ResenaRutas.registrar(app);
 
         registrarManejoDeErrores(app);
 
@@ -128,7 +138,8 @@ public final class ApiServidor {
 
     private static Respuesta traducir(Exception e) {
         if (e instanceof NoExisteProductoException || e instanceof NoExisteProveedorException
-                || e instanceof NoExisteUsuarioException || e instanceof NoExisteCompraException) {
+                || e instanceof NoExisteUsuarioException || e instanceof NoExisteCompraException
+                || e instanceof NoExisteResenaException) {
             return new Respuesta(404, e.getMessage());
         }
         if (e instanceof ExisteProductoException || e instanceof ExisteUsuarioException || e instanceof ProveedorConComprasException) {
@@ -137,7 +148,7 @@ public final class ApiServidor {
         if (e instanceof CredencialesInvalidasException) {
             return new Respuesta(401, e.getMessage());
         }
-        if (e instanceof UsuarioInactivoException) {
+        if (e instanceof UsuarioInactivoException || e instanceof SinPermisoException) {
             return new Respuesta(403, e.getMessage());
         }
         // el resto de las excepciones del dominio son datos invalidos (precio, compra vacia, estado, fechas...)
@@ -162,6 +173,7 @@ public final class ApiServidor {
         if (nombre.contains("productos_codigo_unico")) return new Respuesta(409, "Ya existe un producto con el codigo dado");
         if (nombre.contains("usuarios_email_unico")) return new Respuesta(409, "Ya existe un usuario con el email dado");
         if (nombre.contains("detalle_producto_unico")) return new Respuesta(409, "Ese producto ya esta en la compra");
+        if (nombre.contains("resenas_una_por_usuario")) return new Respuesta(409, "Ya publicaste una reseña de este producto");
         if (nombre.contains("productos_stock_check")) return new Respuesta(409, "La operacion dejaria el stock de un producto en negativo");
         if (nombre.contains("productos_precios_check")) return new Respuesta(400, "El precio de venta no puede ser menor al precio de compra");
         SQLException sql = cv.getSQLException();

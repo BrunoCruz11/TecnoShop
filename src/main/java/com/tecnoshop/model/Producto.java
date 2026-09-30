@@ -21,6 +21,8 @@ public class Producto {
     private int stock;
     private double precioCompra;
     private double precioVenta;
+    // URL de la imagen o ruta del front (ej. img/productos/mou-001.svg); puede quedar vacia
+    private String imagenUrl;
 
     // Hibernate la incrementa en cada UPDATE; si otro la cambio mientras tanto, la transaccion falla en vez de pisar datos
     @Version
@@ -102,6 +104,14 @@ public class Producto {
 
     public void setPrecioCompra(double precioCompra) {
         this.precioCompra = precioCompra;
+    }
+
+    public String getImagenUrl() {
+        return this.imagenUrl;
+    }
+
+    public void setImagenUrl(String imagenUrl) {
+        this.imagenUrl = imagenUrl;
     }
 
     public double getPrecioVenta() {

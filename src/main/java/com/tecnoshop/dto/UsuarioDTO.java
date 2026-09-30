@@ -1,16 +1,20 @@
 package com.tecnoshop.dto;
 
+import com.tecnoshop.enums.Rol;
+
 public class UsuarioDTO {
     private int id;
     private String nombre;
     private String email;
     private boolean activo;
+    private Rol rol;
 
-    public UsuarioDTO(int id, String nombre, String email, boolean activo) {
+    public UsuarioDTO(int id, String nombre, String email, boolean activo, Rol rol) {
         this.id = id;
         this.nombre = nombre;
         this.email = email;
         this.activo = activo;
+        this.rol = rol;
     }
 
     public int getId() {
@@ -27,5 +31,9 @@ public class UsuarioDTO {
 
     public boolean isActivo() {
         return this.activo;
+    }
+
+    public Rol getRol() {
+        return this.rol;
     }
 }

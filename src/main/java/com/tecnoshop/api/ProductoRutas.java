@@ -10,7 +10,7 @@ import io.javalin.Javalin;
 public final class ProductoRutas {
 
     // lo que manda el front al crear o editar un producto
-    public record ProductoPeticion(String nombre, String descripcion, String codigo, int stock, int stockMinimo, double precioCompra, double precioVenta) {}
+    public record ProductoPeticion(String nombre, String descripcion, String codigo, int stock, int stockMinimo, double precioCompra, double precioVenta, String imagenUrl) {}
     public record DisponiblePeticion(boolean disponible) {}
 
     private ProductoRutas() {
@@ -18,6 +18,9 @@ public final class ProductoRutas {
 
     public static void registrar(Javalin app) {
         IProductoControlador PC = ProductoControlador.get();
+
+        // catalogo: lo puede ver cualquier usuario con sesion (sin precio de compra ni stock exacto)
+        app.get("/api/catalogo", ctx -> ctx.json(PC.obtenerCatalogo()));
 
         app.get("/api/productos", ctx -> ctx.json(PC.obtenerTodosLosProductos()));
 
@@ -35,14 +38,14 @@ public final class ProductoRutas {
 
         app.post("/api/productos", ctx -> {
             ProductoPeticion p = ctx.bodyAsClass(ProductoPeticion.class);
-            PC.registrarProducto(p.nombre(), p.descripcion(), p.codigo(), p.stock(), p.stockMinimo(), p.precioCompra(), p.precioVenta());
+            PC.registrarProducto(p.nombre(), p.descripcion(), p.codigo(), p.stock(), p.stockMinimo(), p.precioCompra(), p.precioVenta(), p.imagenUrl());
             ctx.status(201);
         });
 
         app.put("/api/productos/{id}", ctx -> {
             int id = ctx.pathParamAsClass("id", Integer.class).get();
             ProductoPeticion p = ctx.bodyAsClass(ProductoPeticion.class);
-            PC.modificarProducto(id, p.nombre(), p.descripcion(), p.codigo(), p.stock(), p.stockMinimo(), p.precioCompra(), p.precioVenta());
+            PC.modificarProducto(id, p.nombre(), p.descripcion(), p.codigo(), p.stock(), p.stockMinimo(), p.precioCompra(), p.precioVenta(), p.imagenUrl());
             ctx.status(204);
         });
 

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.tecnoshop.dto.UsuarioDTO;
+import com.tecnoshop.enums.Rol;
 import com.tecnoshop.model.Usuario;
 import com.tecnoshop.util.HibernateUtil;
 
@@ -47,7 +48,7 @@ public class ManejadorUsuario{
             if (usuario == null) {
                 return null;
             }
-            return new UsuarioDTO(usuario.getId(), usuario.getNombre(), usuario.getEmail(), usuario.isActivo());
+            return new UsuarioDTO(usuario.getId(), usuario.getNombre(), usuario.getEmail(), usuario.isActivo(), usuario.getRol());
         } finally {
             em.close();
         }
@@ -60,7 +61,7 @@ public class ManejadorUsuario{
 
             List<UsuarioDTO> usuariosDTO = new ArrayList<>();
             for (Usuario usuario : usuarios) {
-                usuariosDTO.add(new UsuarioDTO(usuario.getId(), usuario.getNombre(), usuario.getEmail(), usuario.isActivo()));
+                usuariosDTO.add(new UsuarioDTO(usuario.getId(), usuario.getNombre(), usuario.getEmail(), usuario.isActivo(), usuario.getRol()));
             }
             return usuariosDTO;
         } finally {
@@ -209,6 +210,26 @@ public class ManejadorUsuario{
             }
             em.getTransaction().commit();
 
+        }catch (RuntimeException e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            throw e;
+        } finally {
+            em.close();
+        }
+    }
+
+
+    public void cambiarRolUsuario(int id, Rol rol){
+        EntityManager em = HibernateUtil.getEntityManager();
+        try{
+            em.getTransaction().begin();
+            Usuario usuario = em.find(Usuario.class, id);
+            if(usuario != null){
+                usuario.setRol(rol);
+            }
+            em.getTransaction().commit();
         }catch (RuntimeException e) {
             if (em.getTransaction().isActive()) {
                 em.getTransaction().rollback();

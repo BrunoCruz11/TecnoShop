@@ -5,6 +5,7 @@ import java.util.List;
 import org.mindrot.jbcrypt.BCrypt;
 
 import com.tecnoshop.dto.UsuarioDTO;
+import com.tecnoshop.enums.Rol;
 import com.tecnoshop.excepciones.CredencialesInvalidasException;
 import com.tecnoshop.excepciones.DatosInvalidosException;
 import com.tecnoshop.excepciones.ExisteUsuarioException;
@@ -29,7 +30,8 @@ public class UsuarioControlador implements IUsuarioControlador {
         return instancia;
     }
 
-    public void registrarUsuario(String nombre, String email, String password, boolean activo) throws ExisteUsuarioException, DatosInvalidosException{
+    public void registrarUsuario(String nombre, String email, String password, boolean activo, Rol rol) throws ExisteUsuarioException, DatosInvalidosException{
+        Validar.obligatorio(rol, "rol");
         nombre = Validar.texto(nombre, "nombre", 255);
         email = Validar.email(email);
         Validar.password(password);
@@ -39,6 +41,7 @@ public class UsuarioControlador implements IUsuarioControlador {
         }
         String hash = BCrypt.hashpw(password, BCrypt.gensalt());
         Usuario S = new Usuario (nombre,email,hash,activo);
+        S.setRol(rol);
         MU.agregarUsuario(S);
     }
 
@@ -60,6 +63,11 @@ public class UsuarioControlador implements IUsuarioControlador {
 
     public void desactivarUsuario(int id) throws NoExisteUsuarioException{
         buscar(id).cambiarEstadoUsuario(id,false);
+    }
+
+    public void cambiarRolUsuario(int id, Rol rol) throws NoExisteUsuarioException, DatosInvalidosException{
+        Validar.obligatorio(rol, "rol");
+        buscar(id).cambiarRolUsuario(id, rol);
     }
 
     public void cambiarNombreUsuario(int id, String nombre) throws NoExisteUsuarioException, DatosInvalidosException{
@@ -97,7 +105,7 @@ public class UsuarioControlador implements IUsuarioControlador {
         if(!usuario.isActivo()){
             throw new UsuarioInactivoException("El usuario esta inactivo");
         }
-        return new UsuarioDTO(usuario.getId(), usuario.getNombre(), usuario.getEmail(), usuario.isActivo());
+        return new UsuarioDTO(usuario.getId(), usuario.getNombre(), usuario.getEmail(), usuario.isActivo(), usuario.getRol());
     }
 
     // devuelve el manejador si el usuario existe, asi cada metodo no repite el mismo if

@@ -1,15 +1,32 @@
 package com.tecnoshop.util;
 
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.tecnoshop.controlador.CompraControlador;
+import com.tecnoshop.controlador.ICompraControlador;
 import com.tecnoshop.controlador.IProductoControlador;
+import com.tecnoshop.controlador.IProveedorControlador;
+import com.tecnoshop.controlador.ProveedorControlador;
+import com.tecnoshop.dto.DetalleCompraDTO;
+import com.tecnoshop.dto.ProductoDTO;
+import com.tecnoshop.dto.ProveedorDTO;
+import com.tecnoshop.dto.UsuarioDTO;
 import com.tecnoshop.controlador.IUsuarioControlador;
 import com.tecnoshop.controlador.ProductoControlador;
 import com.tecnoshop.controlador.UsuarioControlador;
+import com.tecnoshop.enums.EstadoCompra;
+import com.tecnoshop.enums.Rol;
 import com.tecnoshop.excepciones.DatosInvalidosException;
 import com.tecnoshop.excepciones.ExisteProductoException;
 import com.tecnoshop.excepciones.ExisteUsuarioException;
+import com.tecnoshop.excepciones.NoExisteProductoException;
 import com.tecnoshop.excepciones.PrecioInvalidoException;
 
 /**
@@ -35,7 +52,7 @@ public final class CargaDatos {
             return;
         }
         try {
-            UC.registrarUsuario("Administrador", Config.ADMIN_EMAIL, Config.ADMIN_PASSWORD, true);
+            UC.registrarUsuario("Administrador", Config.ADMIN_EMAIL, Config.ADMIN_PASSWORD, true, Rol.ADMIN);
             LOG.info("Usuario inicial creado: {}", Config.ADMIN_EMAIL);
         } catch (ExisteUsuarioException e) {
             // otra instancia lo creo al mismo tiempo
@@ -65,9 +82,103 @@ public final class CargaDatos {
         LOG.info("CargaDatos: {} productos nuevos cargados", cargados);
     }
 
+    public static void cargarProveedores() {
+        IProveedorControlador PRC = ProveedorControlador.get();
+        // el proveedor no tiene un campo unico, asi que se saltea el que ya tenga el mismo email
+        Set<String> emails = PRC.obtenerTodosLosProveedores().stream()
+                .map(ProveedorDTO::getEmail)
+                .collect(Collectors.toSet());
+        int cargados = 0;
+
+        //                              telefono   nombre                           email
+        cargados += cargar(PRC, emails, 24001234, "Distribuidora TecnoSur",       "ventas@tecnosur.example.com");
+        cargados += cargar(PRC, emails, 29005678, "Importadora Digital del Plata", "compras@digitalplata.example.com");
+        cargados += cargar(PRC, emails, 26221190, "Mayorista InfoRed",            "contacto@infored.example.com");
+        cargados += cargar(PRC, emails, 24873300, "Perifericos Uruguay",          "pedidos@perifericos.example.com");
+        cargados += cargar(PRC, emails, 27104455, "Redes y Cables SRL",           "info@redesycables.example.com");
+
+        LOG.info("CargaDatos: {} proveedores nuevos cargados", cargados);
+    }
+
+    // compras de ejemplo, para que cada producto quede conectado con los proveedores que lo venden.
+    // Solo se cargan si la base no tiene ninguna compra (confirmar suma stock, no se puede repetir).
+    public static void cargarCompras() {
+        ICompraControlador CC = CompraControlador.get();
+        if (!CC.obtenerTodasLasCompras().isEmpty()) {
+            return;
+        }
+        UsuarioDTO admin = UsuarioControlador.get().obtenerTodosLosUsuarios().stream()
+                .filter(u -> u.getRol() == Rol.ADMIN)
+                .findFirst().orElse(null);
+        if (admin == null) {
+            return;
+        }
+        Map<String, Integer> productos = ProductoControlador.get().obtenerTodosLosProductos().stream()
+                .collect(Collectors.toMap(ProductoDTO::getCodigo, ProductoDTO::getId));
+        Map<String, Integer> proveedores = ProveedorControlador.get().obtenerTodosLosProveedores().stream()
+                .collect(Collectors.toMap(ProveedorDTO::getEmail, ProveedorDTO::getId, (a, b) -> a));
+        LocalDate hoy = LocalDate.now();
+        int cargadas = 0;
+
+        cargadas += cargar(CC, admin.getId(), proveedores.get("ventas@tecnosur.example.com"), hoy.minusDays(40), EstadoCompra.CONFIRMADA,
+                detalle(productos, "MOU-001", 10, 350), detalle(productos, "TEC-001", 5, 1400));
+        cargadas += cargar(CC, admin.getId(), proveedores.get("pedidos@perifericos.example.com"), hoy.minusDays(32), EstadoCompra.CONFIRMADA,
+                detalle(productos, "CAM-001", 5, 950), detalle(productos, "MPD-XL", 10, 250), detalle(productos, "MOU-001", 5, 340));
+        cargadas += cargar(CC, admin.getId(), proveedores.get("contacto@infored.example.com"), hoy.minusDays(25), EstadoCompra.CONFIRMADA,
+                detalle(productos, "SSD-480", 4, 1300), detalle(productos, "USB-064", 20, 180), detalle(productos, "MON-001", 2, 5200));
+        cargadas += cargar(CC, admin.getId(), proveedores.get("info@redesycables.example.com"), hoy.minusDays(18), EstadoCompra.CONFIRMADA,
+                detalle(productos, "RED-001", 3, 1600), detalle(productos, "CAB-HD2", 20, 90));
+        cargadas += cargar(CC, admin.getId(), proveedores.get("compras@digitalplata.example.com"), hoy.minusDays(10), EstadoCompra.CONFIRMADA,
+                detalle(productos, "SSD-480", 3, 1280), detalle(productos, "MON-001", 1, 5100));
+        // pendiente: los auriculares y la RAM siguen con stock bajo hasta que se confirme
+        cargadas += cargar(CC, admin.getId(), proveedores.get("compras@digitalplata.example.com"), hoy.minusDays(2), EstadoCompra.PENDIENTE,
+                detalle(productos, "AUR-001", 6, 1100), detalle(productos, "RAM-008", 6, 900));
+        cargadas += cargar(CC, admin.getId(), proveedores.get("ventas@tecnosur.example.com"), hoy.minusDays(5), EstadoCompra.CANCELADA,
+                detalle(productos, "PAR-001", 4, 450));
+
+        LOG.info("CargaDatos: {} compras de ejemplo cargadas", cargadas);
+    }
+
+    private static DetalleCompraDTO detalle(Map<String, Integer> productos, String codigo, int cantidad, double precioUnitario) {
+        return new DetalleCompraDTO(productos.getOrDefault(codigo, -1), cantidad, precioUnitario);
+    }
+
+    private static int cargar(ICompraControlador CC, int usuarioId, Integer proveedorId, LocalDate fecha, EstadoCompra estado, DetalleCompraDTO... detalles) {
+        if (proveedorId == null) {
+            return 0; // el proveedor de ejemplo no esta (lo borraron o cambiaron el email)
+        }
+        try {
+            int id = CC.registrarCompra(usuarioId, proveedorId, fecha, List.of(detalles));
+            if (estado == EstadoCompra.CONFIRMADA) {
+                CC.confirmarCompra(id);
+            } else if (estado == EstadoCompra.CANCELADA) {
+                CC.cancelarCompra(id);
+            }
+            return 1;
+        } catch (NoExisteProductoException e) {
+            return 0; // algun producto de ejemplo no esta
+        } catch (Exception e) {
+            throw new IllegalStateException("Compra de ejemplo invalida: " + e.getMessage());
+        }
+    }
+
+    private static int cargar(IProveedorControlador PRC, Set<String> emails, int telefono, String nombre, String email) {
+        if (emails.contains(email)) {
+            return 0; // ya estaba cargado de una corrida anterior
+        }
+        try {
+            PRC.registrarProveedor(telefono, nombre, email);
+            return 1;
+        } catch (DatosInvalidosException e) {
+            throw new IllegalStateException("Dato de ejemplo invalido para " + nombre + ": " + e.getMessage());
+        }
+    }
+
     private static int cargar(IProductoControlador PC, String nombre, String descripcion, String codigo, int stock, int stockMinimo, double precioCompra, double precioVenta) {
         try {
-            PC.registrarProducto(nombre, descripcion, codigo, stock, stockMinimo, precioCompra, precioVenta);
+            // las ilustraciones de los productos de ejemplo vienen con el front, en img/productos/
+            String imagen = "img/productos/" + codigo.toLowerCase() + ".svg";
+            PC.registrarProducto(nombre, descripcion, codigo, stock, stockMinimo, precioCompra, precioVenta, imagen);
             return 1;
         } catch (ExisteProductoException e) {
             return 0; // ya estaba cargado de una corrida anterior

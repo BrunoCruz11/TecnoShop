@@ -2,6 +2,7 @@ package com.tecnoshop.controlador;
 
 import java.util.List;
 
+import com.tecnoshop.dto.ProductoCatalogoDTO;
 import com.tecnoshop.dto.ProductoDTO;
 import com.tecnoshop.excepciones.DatosInvalidosException;
 import com.tecnoshop.excepciones.ExisteProductoException;
@@ -23,11 +24,12 @@ public class ProductoControlador implements IProductoControlador {
         return instancia;
     }
 
-    public void registrarProducto(String nombre, String descripcion, String codigo, int stock, int stockMinimo, double precioCompra, double precioVenta) throws ExisteProductoException, PrecioInvalidoException, DatosInvalidosException{
+    public void registrarProducto(String nombre, String descripcion, String codigo, int stock, int stockMinimo, double precioCompra, double precioVenta, String imagenUrl) throws ExisteProductoException, PrecioInvalidoException, DatosInvalidosException{
         nombre = Validar.texto(nombre, "nombre", 255);
         descripcion = Validar.textoOpcional(descripcion, "descripcion", 255);
         codigo = Validar.texto(codigo, "codigo", 50);
         validarNumeros(stock, stockMinimo, precioCompra, precioVenta);
+        imagenUrl = Validar.imagenUrl(imagenUrl);
 
         ManejadorProducto MP = ManejadorProducto.getInstancia();
         if(MP.existeProducto(codigo)){
@@ -35,6 +37,7 @@ public class ProductoControlador implements IProductoControlador {
         }
         // un producto nuevo arranca disponible; RF09 es el que permite cambiarlo despues
         Producto P = new Producto(nombre, descripcion, true, codigo, stockMinimo, stock, precioCompra, precioVenta);
+        P.setImagenUrl(imagenUrl);
         MP.agregarProducto(P);
     }
 
@@ -46,6 +49,19 @@ public class ProductoControlador implements IProductoControlador {
     public List<ProductoDTO> obtenerTodosLosProductos(){
         ManejadorProducto MP = ManejadorProducto.getInstancia();
         return MP.obtenerTodosLosProductos();
+    }
+
+    public List<ProductoCatalogoDTO> obtenerCatalogo(){
+        ManejadorProducto MP = ManejadorProducto.getInstancia();
+        return MP.obtenerCatalogo();
+    }
+
+    public ProductoCatalogoDTO obtenerProductoCatalogo(int id) throws NoExisteProductoException{
+        ProductoCatalogoDTO producto = ManejadorProducto.getInstancia().obtenerProductoCatalogo(id);
+        if(producto == null){
+            throw new NoExisteProductoException("El producto no existe o no esta disponible");
+        }
+        return producto;
     }
 
     public boolean alertaStockMinimo(int id) throws NoExisteProductoException{
@@ -128,18 +144,19 @@ public class ProductoControlador implements IProductoControlador {
     }
 
     // modifica todos los datos juntos (lo usa el formulario de edicion del front); la disponibilidad va por RF09
-    public void modificarProducto(int id, String nombre, String descripcion, String codigo, int stock, int stockMinimo, double precioCompra, double precioVenta) throws NoExisteProductoException, ExisteProductoException, PrecioInvalidoException, DatosInvalidosException{
+    public void modificarProducto(int id, String nombre, String descripcion, String codigo, int stock, int stockMinimo, double precioCompra, double precioVenta, String imagenUrl) throws NoExisteProductoException, ExisteProductoException, PrecioInvalidoException, DatosInvalidosException{
         nombre = Validar.texto(nombre, "nombre", 255);
         descripcion = Validar.textoOpcional(descripcion, "descripcion", 255);
         codigo = Validar.texto(codigo, "codigo", 50);
         validarNumeros(stock, stockMinimo, precioCompra, precioVenta);
+        imagenUrl = Validar.imagenUrl(imagenUrl);
 
         ManejadorProducto MP = buscar(id);
         Producto otro = MP.obtenerProductoPorCodigo(codigo);
         if(otro != null && otro.getId() != id){
             throw new ExisteProductoException("Ya existe un producto con el codigo dado");
         }
-        MP.modificarProducto(id, nombre, descripcion, codigo, stock, stockMinimo, precioCompra, precioVenta);
+        MP.modificarProducto(id, nombre, descripcion, codigo, stock, stockMinimo, precioCompra, precioVenta, imagenUrl);
     }
 
     // devuelve el manejador si el producto existe, asi cada metodo no repite el mismo if
