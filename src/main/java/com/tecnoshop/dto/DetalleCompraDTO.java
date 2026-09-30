@@ -18,6 +18,14 @@ public class DetalleCompraDTO {
         this.subtotal = subtotal;
     }
 
+    // para armar las lineas al registrar una compra: todavia no tienen id ni compra, y el subtotal se calcula (RF16)
+    public DetalleCompraDTO(int productoId, int cantidad, double precioUnitario) {
+        this.productoId = productoId;
+        this.cantidad = cantidad;
+        this.precioUnitario = precioUnitario;
+        this.subtotal = cantidad * precioUnitario;
+    }
+
     public int getId() {
         return this.id;
     }
