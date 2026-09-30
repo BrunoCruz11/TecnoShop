@@ -1,9 +1,14 @@
 package com.tecnoshop.model;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.tecnoshop.enums.EstadoCompra;
+
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -18,8 +23,9 @@ public class Compra {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
-    private String estado;
-    //private Dtfecha fecha; //checkeable
+    @Enumerated(EnumType.STRING)
+    private EstadoCompra estado;
+    private LocalDate fecha;
 
     @ManyToOne
     @JoinColumn(name = "usuario_id")
@@ -35,8 +41,9 @@ public class Compra {
     public Compra() {
     }
 
-    public Compra(String estado, Usuario usuario, Proveedor proveedor) {
+    public Compra(EstadoCompra estado, LocalDate fecha, Usuario usuario, Proveedor proveedor) {
         this.estado = estado;
+        this.fecha = fecha;
         this.usuario = usuario;
         this.proveedor = proveedor;
     }
@@ -49,12 +56,20 @@ public class Compra {
         this.id = id;
     }
 
-    public String getEstado() {
+    public EstadoCompra getEstado() {
         return this.estado;
     }
 
-    public void setEstado(String estado) {
+    public void setEstado(EstadoCompra estado) {
         this.estado = estado;
+    }
+
+    public LocalDate getFecha() {
+        return this.fecha;
+    }
+
+    public void setFecha(LocalDate fecha) {
+        this.fecha = fecha;
     }
 
     public Usuario getUsuario() {
@@ -75,6 +90,15 @@ public class Compra {
 
     public List<Detalle_compra> getDetalles() {
         return this.detalles;
+    }
+
+    // el total no se guarda, se calcula a partir de los subtotales de cada linea (RF16)
+    public double getTotal() {
+        double total = 0;
+        for (Detalle_compra detalle : this.detalles) {
+            total += detalle.getSubtotal();
+        }
+        return total;
     }
 
 }
