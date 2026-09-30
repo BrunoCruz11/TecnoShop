@@ -5,6 +5,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "productos")
@@ -20,6 +21,10 @@ public class Producto {
     private int stock;
     private double precioCompra;
     private double precioVenta;
+
+    // Hibernate la incrementa en cada UPDATE; si otro la cambio mientras tanto, la transaccion falla en vez de pisar datos
+    @Version
+    private int version;
 
     public Producto() {
     }

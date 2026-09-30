@@ -1,12 +1,15 @@
 package com.tecnoshop.controlador;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.tecnoshop.dto.CompraDTO;
 import com.tecnoshop.dto.DetalleCompraDTO;
 import com.tecnoshop.enums.EstadoCompra;
 import com.tecnoshop.excepciones.CompraVaciaException;
+import com.tecnoshop.excepciones.DatosInvalidosException;
 import com.tecnoshop.excepciones.EstadoCompraInvalidoException;
 import com.tecnoshop.excepciones.NoExisteCompraException;
 import com.tecnoshop.excepciones.NoExisteProductoException;
@@ -17,6 +20,7 @@ import com.tecnoshop.manejador.ManejadorCompra;
 import com.tecnoshop.manejador.ManejadorProducto;
 import com.tecnoshop.manejador.ManejadorProveedor;
 import com.tecnoshop.manejador.ManejadorUsuario;
+import com.tecnoshop.util.Validar;
 
 public class CompraControlador implements ICompraControlador {
     private static CompraControlador instancia= null;
@@ -30,7 +34,8 @@ public class CompraControlador implements ICompraControlador {
         return instancia;
     }
 
-    public int registrarCompra(int usuarioId, int proveedorId, LocalDate fecha, List<DetalleCompraDTO> detalles) throws CompraVaciaException, NoExisteUsuarioException, NoExisteProveedorException, NoExisteProductoException{
+    public int registrarCompra(int usuarioId, int proveedorId, LocalDate fecha, List<DetalleCompraDTO> detalles) throws CompraVaciaException, NoExisteUsuarioException, NoExisteProveedorException, NoExisteProductoException, DatosInvalidosException{
+        Validar.obligatorio(fecha, "fecha");
         if(detalles == null || detalles.isEmpty()){
             throw new CompraVaciaException("Una compra debe tener al menos un detalle");
         }
@@ -41,9 +46,16 @@ public class CompraControlador implements ICompraControlador {
             throw new NoExisteProveedorException("No existe un proveedor con el id dado");
         }
         ManejadorProducto MP = ManejadorProducto.getInstancia();
+        Set<Integer> productosVistos = new HashSet<>();
         for(DetalleCompraDTO detalle : detalles){
+            Validar.positivo(detalle.getCantidad(), "cantidad");
+            Validar.noNegativo(detalle.getPrecioUnitario(), "precio unitario");
             if(MP.obtenerProductoPorId(detalle.getProductoId()) == null){
                 throw new NoExisteProductoException("No existe un producto con el id " + detalle.getProductoId());
+            }
+            // cada producto va en una sola linea; si se compra mas, se sube la cantidad
+            if(!productosVistos.add(detalle.getProductoId())){
+                throw new DatosInvalidosException("Un producto no puede aparecer en mas de una linea de la misma compra");
             }
         }
         // una compra nueva arranca pendiente (RF14)
@@ -71,7 +83,9 @@ public class CompraControlador implements ICompraControlador {
         return MC.obtenerComprasPorProveedor(proveedorId);
     }
 
-    public List<CompraDTO> obtenerComprasPorFecha(LocalDate desde, LocalDate hasta) throws RangoFechasInvalidoException{
+    public List<CompraDTO> obtenerComprasPorFecha(LocalDate desde, LocalDate hasta) throws RangoFechasInvalidoException, DatosInvalidosException{
+        Validar.obligatorio(desde, "desde");
+        Validar.obligatorio(hasta, "hasta");
         if(desde.isAfter(hasta)){
             throw new RangoFechasInvalidoException("La fecha desde no puede ser posterior a la fecha hasta");
         }
@@ -79,30 +93,27 @@ public class CompraControlador implements ICompraControlador {
         return MC.obtenerComprasPorFecha(desde, hasta);
     }
 
-    // flujo valido (RF14): pendiente -> confirmada -> cancelada, o pendiente -> cancelada
+    // Flujo valido (RF14): pendiente -> confirmada -> cancelada, o pendiente -> cancelada.
+    // El manejador revisa el estado y lo cambia en una sola transaccion con la compra bloqueada,
+    // y devuelve el estado que tenia antes; aca solo se traduce ese resultado a la excepcion que corresponde.
     public void confirmarCompra(int id) throws NoExisteCompraException, EstadoCompraInvalidoException{
-        ManejadorCompra MC = ManejadorCompra.getInstancia();
-        CompraDTO compra = MC.obtenerCompraPorId(id);
-        if(compra == null){
+        EstadoCompra anterior = ManejadorCompra.getInstancia().confirmarCompra(id);
+        if(anterior == null){
             throw new NoExisteCompraException("No existe una compra con el id dado");
         }
-        if(compra.getEstado() != EstadoCompra.PENDIENTE){
+        if(anterior != EstadoCompra.PENDIENTE){
             throw new EstadoCompraInvalidoException("Solo se puede confirmar una compra pendiente");
         }
-        MC.confirmarCompra(id);
     }
 
     public void cancelarCompra(int id) throws NoExisteCompraException, EstadoCompraInvalidoException{
-        ManejadorCompra MC = ManejadorCompra.getInstancia();
-        CompraDTO compra = MC.obtenerCompraPorId(id);
-        if(compra == null){
+        EstadoCompra anterior = ManejadorCompra.getInstancia().cancelarCompra(id);
+        if(anterior == null){
             throw new NoExisteCompraException("No existe una compra con el id dado");
         }
-        if(compra.getEstado() == EstadoCompra.CANCELADA){
+        if(anterior == EstadoCompra.CANCELADA){
             throw new EstadoCompraInvalidoException("La compra ya esta cancelada");
         }
-        boolean estabaConfirmada = compra.getEstado() == EstadoCompra.CONFIRMADA;
-        MC.cancelarCompra(id, estabaConfirmada);
     }
 
 }

@@ -15,7 +15,7 @@ public class ManejadorProducto{
     private ManejadorProducto() {
     }
 
-    public static ManejadorProducto getInstancia() {
+    public static synchronized ManejadorProducto getInstancia() {
         if (instancia == null) {
             instancia = new ManejadorProducto();
         }
@@ -118,6 +118,33 @@ public class ManejadorProducto{
                     .setParameter("codigo", codigo)
                     .getResultList();
             return productos.isEmpty() ? null : productos.get(0);
+        } finally {
+            em.close();
+        }
+    }
+
+
+    // cambia todos los datos en una sola transaccion
+    public void modificarProducto(int id, String nombre, String descripcion, String codigo, int stock, int stockMinimo, double precioCompra, double precioVenta) {
+        EntityManager em = HibernateUtil.getEntityManager();
+        try {
+            em.getTransaction().begin();
+            Producto producto = em.find(Producto.class, id);
+            if (producto != null) {
+                producto.setNombre(nombre);
+                producto.setDescripcion(descripcion);
+                producto.setCodigo(codigo);
+                producto.setStock(stock);
+                producto.setStockMinimo(stockMinimo);
+                producto.setPrecioCompra(precioCompra);
+                producto.setPrecioVenta(precioVenta);
+            }
+            em.getTransaction().commit();
+        } catch (RuntimeException e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            throw e;
         } finally {
             em.close();
         }

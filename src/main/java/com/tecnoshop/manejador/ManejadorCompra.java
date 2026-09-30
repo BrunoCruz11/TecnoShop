@@ -22,7 +22,7 @@ public class ManejadorCompra{
     private ManejadorCompra() {
     }
 
-    public static ManejadorCompra getInstancia() {
+    public static synchronized ManejadorCompra getInstancia() {
         if (instancia == null) {
             instancia = new ManejadorCompra();
         }
@@ -121,20 +121,23 @@ public class ManejadorCompra{
     }
 
 
-    // cambia el estado y suma al stock de cada producto en la misma transaccion (RF17)
-    public void confirmarCompra(int id) {
+    // Confirma la compra y suma al stock de cada producto en la misma transaccion (RF17).
+    // El cambio de estado es un UPDATE condicional (... WHERE estado = PENDIENTE): la base lo ejecuta de a uno por fila,
+    // asi que si llegan dos confirmaciones a la vez solo una cambia la fila y la otra no cambia nada.
+    // Devuelve el estado que tenia la compra antes (null si no existe); solo cambia algo si estaba PENDIENTE.
+    public EstadoCompra confirmarCompra(int id) {
         EntityManager em = HibernateUtil.getEntityManager();
         try {
             em.getTransaction().begin();
-            Compra compra = em.find(Compra.class, id);
-            if (compra != null) {
-                compra.setEstado(EstadoCompra.CONFIRMADA);
-                for (Detalle_compra detalle : compra.getDetalles()) {
-                    Producto producto = detalle.getProducto();
-                    producto.setStock(producto.getStock() + detalle.getCantidad());
-                }
+            EstadoCompra anterior;
+            if (cambiarEstadoSi(em, id, EstadoCompra.PENDIENTE, EstadoCompra.CONFIRMADA)) {
+                anterior = EstadoCompra.PENDIENTE;
+                sumarStock(em, id, 1);
+            } else {
+                anterior = estadoActual(em, id);
             }
             em.getTransaction().commit();
+            return anterior;
         } catch (RuntimeException e) {
             if (em.getTransaction().isActive()) {
                 em.getTransaction().rollback();
@@ -146,22 +149,23 @@ public class ManejadorCompra{
     }
 
 
-    // si la compra ya estaba confirmada, se descuenta el stock que se habia sumado al confirmarla
-    public void cancelarCompra(int id, boolean devolverStock) {
+    // Cancela la compra; si estaba confirmada, descuenta el stock que se habia sumado.
+    // Mismo mecanismo que confirmarCompra. Devuelve el estado anterior (null si no existe).
+    public EstadoCompra cancelarCompra(int id) {
         EntityManager em = HibernateUtil.getEntityManager();
         try {
             em.getTransaction().begin();
-            Compra compra = em.find(Compra.class, id);
-            if (compra != null) {
-                compra.setEstado(EstadoCompra.CANCELADA);
-                if (devolverStock) {
-                    for (Detalle_compra detalle : compra.getDetalles()) {
-                        Producto producto = detalle.getProducto();
-                        producto.setStock(producto.getStock() - detalle.getCantidad());
-                    }
-                }
+            EstadoCompra anterior;
+            if (cambiarEstadoSi(em, id, EstadoCompra.CONFIRMADA, EstadoCompra.CANCELADA)) {
+                anterior = EstadoCompra.CONFIRMADA;
+                sumarStock(em, id, -1);
+            } else if (cambiarEstadoSi(em, id, EstadoCompra.PENDIENTE, EstadoCompra.CANCELADA)) {
+                anterior = EstadoCompra.PENDIENTE;
+            } else {
+                anterior = estadoActual(em, id);
             }
             em.getTransaction().commit();
+            return anterior;
         } catch (RuntimeException e) {
             if (em.getTransaction().isActive()) {
                 em.getTransaction().rollback();
@@ -169,6 +173,40 @@ public class ManejadorCompra{
             throw e;
         } finally {
             em.close();
+        }
+    }
+
+
+    // true si la compra estaba en el estado "desde" y se paso a "hasta"; false si estaba en otro estado o no existe
+    private boolean cambiarEstadoSi(EntityManager em, int id, EstadoCompra desde, EstadoCompra hasta) {
+        int filas = em.createQuery("UPDATE Compra c SET c.estado = :hasta, c.version = c.version + 1 WHERE c.id = :id AND c.estado = :desde")
+                .setParameter("hasta", hasta)
+                .setParameter("desde", desde)
+                .setParameter("id", id)
+                .executeUpdate();
+        return filas == 1;
+    }
+
+    private EstadoCompra estadoActual(EntityManager em, int id) {
+        List<EstadoCompra> estados = em.createQuery("SELECT c.estado FROM Compra c WHERE c.id = :id", EstadoCompra.class)
+                .setParameter("id", id)
+                .getResultList();
+        return estados.isEmpty() ? null : estados.get(0);
+    }
+
+
+    // signo 1 suma, -1 resta. El UPDATE lo hace la base en un solo paso (stock = stock + n), asi dos compras
+    // del mismo producto confirmadas a la vez no se pisan. Si el stock quedara negativo, la restriccion
+    // productos_stock_check de la base rechaza la operacion y se deshace toda la transaccion.
+    private void sumarStock(EntityManager em, int compraId, int signo) {
+        List<Detalle_compra> detalles = em.createQuery("SELECT d FROM Detalle_compra d WHERE d.compra.id = :id", Detalle_compra.class)
+                .setParameter("id", compraId)
+                .getResultList();
+        for (Detalle_compra detalle : detalles) {
+            em.createQuery("UPDATE Producto p SET p.stock = p.stock + :cantidad, p.version = p.version + 1 WHERE p.id = :id")
+                    .setParameter("cantidad", signo * detalle.getCantidad())
+                    .setParameter("id", detalle.getProducto().getId())
+                    .executeUpdate();
         }
     }
 

@@ -15,7 +15,7 @@ public class ManejadorProveedor{
     private ManejadorProveedor() {
     }
 
-    public static ManejadorProveedor getInstancia() {
+    public static synchronized ManejadorProveedor getInstancia() {
         if (instancia == null) {
             instancia = new ManejadorProveedor();
         }

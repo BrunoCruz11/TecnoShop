@@ -13,10 +13,14 @@
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <hibernate.version>6.6.4.Final</hibernate.version>
-        <postgresql.version>42.7.4</postgresql.version>
+        <hibernate.version>6.6.58.Final</hibernate.version>
+        <postgresql.version>42.7.13</postgresql.version>
         <slf4j.version>2.0.16</slf4j.version>
         <jbcrypt.version>0.4</jbcrypt.version>
+        <javalin.version>6.7.0</javalin.version>
+        <jackson.version>2.22.3</jackson.version>
+        <flyway.version>10.22.0</flyway.version>
+        <java-jwt.version>4.6.1</java-jwt.version>
     </properties>
 
     <dependencies>
@@ -24,6 +28,13 @@
         <dependency>
             <groupId>org.hibernate.orm</groupId>
             <artifactId>hibernate-core</artifactId>
+            <version>${hibernate.version}</version>
+        </dependency>
+
+        <!-- Pool de conexiones HikariCP para Hibernate -->
+        <dependency>
+            <groupId>org.hibernate.orm</groupId>
+            <artifactId>hibernate-hikaricp</artifactId>
             <version>${hibernate.version}</version>
         </dependency>
 
@@ -39,6 +50,45 @@
             <groupId>org.mindrot</groupId>
             <artifactId>jbcrypt</artifactId>
             <version>${jbcrypt.version}</version>
+        </dependency>
+
+        <!-- Javalin: servidor HTTP para exponer la API REST que consume el front -->
+        <dependency>
+            <groupId>io.javalin</groupId>
+            <artifactId>javalin</artifactId>
+            <version>${javalin.version}</version>
+        </dependency>
+
+        <!-- Jackson: convierte los DTOs a JSON y el JSON de las peticiones a objetos -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <!-- soporte para LocalDate (fecha de las compras) -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
+        <!-- Flyway: crea y actualiza el esquema de la base con scripts SQL versionados (src/main/resources/db/migration) -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+            <version>${flyway.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+            <version>${flyway.version}</version>
+        </dependency>
+
+        <!-- JWT: token que recibe el front al hacer login y manda en cada peticion -->
+        <dependency>
+            <groupId>com.auth0</groupId>
+            <artifactId>java-jwt</artifactId>
+            <version>${java-jwt.version}</version>
         </dependency>
 
         <!-- Logging (Hibernate usa SLF4J internamente) -->
@@ -61,6 +111,50 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
+            </plugin>
+            <!-- permite levantar el servidor con: mvn compile exec:java -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <configuration>
+                    <mainClass>com.tecnoshop.Main</mainClass>
+                </configuration>
+            </plugin>
+            <!-- mvn package genera target/tecnoshop.jar con todas las dependencias adentro: java -jar target/tecnoshop.jar -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>com.tecnoshop.Main</mainClass>
+                                </transformer>
+                                <!-- Hibernate, Flyway y Jetty se registran con archivos META-INF/services: hay que unirlos, no pisarlos -->
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

@@ -4,13 +4,14 @@ import java.util.List;
 
 import com.tecnoshop.dto.CompraDTO;
 import com.tecnoshop.dto.DetalleCompraDTO;
-import com.tecnoshop.enums.EstadoCompra;
+import com.tecnoshop.excepciones.DatosInvalidosException;
 import com.tecnoshop.excepciones.EstadoCompraInvalidoException;
 import com.tecnoshop.excepciones.NoExisteCompraException;
 import com.tecnoshop.excepciones.NoExisteProductoException;
 import com.tecnoshop.manejador.ManejadorCompra;
 import com.tecnoshop.manejador.ManejadorDetalleCompra;
 import com.tecnoshop.manejador.ManejadorProducto;
+import com.tecnoshop.util.Validar;
 
 public class DetalleCompraControlador implements IDetalleCompraControlador {
     private static DetalleCompraControlador instancia= null;
@@ -24,21 +25,28 @@ public class DetalleCompraControlador implements IDetalleCompraControlador {
         return instancia;
     }
 
-    public void registrarDetalleCompra(int compraId, int productoId, int cantidad, double precioUnitario) throws NoExisteCompraException, NoExisteProductoException, EstadoCompraInvalidoException{
+    public void registrarDetalleCompra(int compraId, int productoId, int cantidad, double precioUnitario) throws NoExisteCompraException, NoExisteProductoException, EstadoCompraInvalidoException, DatosInvalidosException{
+        Validar.positivo(cantidad, "cantidad");
+        Validar.noNegativo(precioUnitario, "precio unitario");
         CompraDTO compra = ManejadorCompra.getInstancia().obtenerCompraPorId(compraId);
         if(compra == null){
             throw new NoExisteCompraException("No existe una compra con el id dado");
         }
-        // si la compra ya se confirmo, esta linea no sumaria stock (RF17)
-        if(compra.getEstado() != EstadoCompra.PENDIENTE){
-            throw new EstadoCompraInvalidoException("Solo se pueden agregar detalles a una compra pendiente");
-        }
         if(ManejadorProducto.getInstancia().obtenerProductoPorId(productoId) == null){
             throw new NoExisteProductoException("No existe un producto con el id dado");
         }
-        double subtotal = cantidad * precioUnitario;
         ManejadorDetalleCompra MD = ManejadorDetalleCompra.getInstancia();
-        MD.agregarDetalleCompra(compraId, productoId, cantidad, precioUnitario, subtotal);
+        for(DetalleCompraDTO existente : MD.obtenerDetallesDeCompra(compraId)){
+            if(existente.getProductoId() == productoId){
+                throw new DatosInvalidosException("Ese producto ya esta en la compra");
+            }
+        }
+        double subtotal = cantidad * precioUnitario;
+        // el manejador vuelve a revisar que siga pendiente con la compra bloqueada:
+        // si se confirmo justo ahora, esta linea no sumaria stock (RF17)
+        if(!MD.agregarDetalleCompra(compraId, productoId, cantidad, precioUnitario, subtotal)){
+            throw new EstadoCompraInvalidoException("Solo se pueden agregar detalles a una compra pendiente");
+        }
     }
 
     public DetalleCompraDTO obtenerDetalleCompraPorId(int id){
