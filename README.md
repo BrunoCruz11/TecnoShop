@@ -1,70 +1,181 @@
-# TecnoShop
+# TecnoShop — Back
 
-Back de TecnoShop: API REST en Java 21 (Javalin + Hibernate + PostgreSQL) para gestionar productos, proveedores, compras y usuarios. El front está en `../TecnoShop-front`.
+API REST para gestionar el stock y las compras de una tienda de tecnología: productos, proveedores, compras y usuarios.
 
-## Desarrollo
+Hecha en **Java 21** con **Javalin** (servidor web), **Hibernate** (acceso a la base) y **PostgreSQL**.
 
-```
-docker compose up -d                 # base de datos en localhost:5433
-mvn compile exec:java                # API en http://localhost:8080/api
-```
+El front está en otro repositorio: [TecnoShop-front](https://github.com/BrunoCruz11/TecnoShop-front).
 
-Y el front (desde `../TecnoShop-front`): `python3 -m http.server 5500` → <http://localhost:5500>.
+---
 
-En desarrollo todo tiene valores por defecto:
-- Si la base no tiene usuarios, se crea `admin@tecnoshop.com` / `admin1234`.
-- Se cargan 12 productos de ejemplo.
+## 1. Qué necesitás instalar
 
-## Producción
-
-Se levantan tres contenedores, y solo nginx queda expuesto:
-
-- **db:** PostgreSQL. No publica ningún puerto.
-- **backend:** la API. Tampoco publica puertos; corre como usuario sin privilegios.
-- **frontend:** nginx. Sirve el front y reenvía `/api` al backend. Es el único que publica un puerto.
-
-```
-cp .env.example .env                 # completar: contraseñas, JWT_SECRET (openssl rand -base64 48), admin
-docker compose -f docker-compose.prod.yml --env-file .env up -d --build
-```
-
-La app queda en el puerto `PUERTO_WEB` (por defecto 80). El primer ingreso es con `ADMIN_EMAIL` / `ADMIN_PASSWORD`; los demás usuarios se crean desde la sección **Usuarios**.
-
-**HTTPS:** este compose sirve HTTP. En un servidor público hay que ponerle adelante un proxy con certificado (por ejemplo Caddy o el balanceador del proveedor de hosting), porque si no las contraseñas viajan sin cifrar.
-
-**Actualizar:** `git pull` y el mismo comando `up -d --build`. Las migraciones de la base corren solas al arrancar.
-
-**Backup de la base:** `docker compose -f docker-compose.prod.yml exec db pg_dump -U tecnoshop tecnoshop_db > backup.sql`
-
-## Configuración (variables de entorno)
-
-| Variable | Qué hace | Por defecto en desarrollo |
+| Programa | Para qué | Cómo verificar que lo tenés |
 |---|---|---|
-| `APP_ENV` | `prod` exige las variables sensibles y apaga los valores de desarrollo | `dev` |
-| `DB_URL`, `DB_USER`, `DB_PASSWORD` | Conexión a PostgreSQL | la base de `docker-compose.yml` |
-| `JWT_SECRET` | Clave que firma las sesiones (mínimo 32 caracteres en prod) | una fija de desarrollo |
-| `JWT_HORAS` | Duración de la sesión | `8` |
-| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Primer usuario, solo si no hay ninguno | `admin@tecnoshop.com` / `admin1234` |
-| `CARGAR_DATOS` | Carga los productos de ejemplo | `true` (en prod `false`) |
-| `CORS_ORIGENES` | Orígenes que pueden llamar a la API desde el navegador | `http://localhost:5500` (en prod ninguno) |
-| `CONFIAR_EN_PROXY` | Usar `X-Real-IP` de nginx para el límite de intentos de login | `false` (en prod `true`) |
-| `MOSTRAR_SQL` | Loguea las consultas SQL | `false` |
-| `PORT` | Puerto de la API | `8080` |
+| [Git](https://git-scm.com/downloads) | Descargar el código | `git --version` |
+| [Java 21 (JDK)](https://adoptium.net/) | Compilar y correr el back | `java -version` (tiene que decir 21) |
+| [Maven](https://maven.apache.org/download.cgi) | Compilar el proyecto y bajar las librerías | `mvn -version` |
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | Correr la base de datos | `docker --version` |
+| Python 3 | Servir el front en desarrollo (en Mac y Linux ya viene) | `python3 --version` |
 
-## Base de datos
+---
 
-El esquema lo manejan las migraciones de Flyway en `src/main/resources/db/migration`, y Hibernate solo lo valida. Para cambiar una tabla:
+## 2. Descargar el proyecto
 
-1. Crear un archivo nuevo, por ejemplo `V3__agregar_columna.sql`. Nunca se editan las migraciones que ya corrieron.
-2. Ajustar la entidad.
+El back y el front van **en la misma carpeta, uno al lado del otro**:
 
-Si entidad y tabla no coinciden, la app no arranca y el log dice qué columna falta.
+```
+mkdir tecnoshop && cd tecnoshop
+git clone https://github.com/BrunoCruz11/TecnoShop.git
+git clone https://github.com/BrunoCruz11/TecnoShop-front.git
+```
 
-## API
+Queda así:
 
-Todas las rutas empiezan con `/api`. Salvo `POST /login` y `GET /salud`, todas piden el header `Authorization: Bearer <token>`. El token lo devuelve el login.
+```
+tecnoshop/
+├── TecnoShop/          ← este repo (back)
+└── TecnoShop-front/    ← el front
+```
 
-Los errores vuelven como `{"error": "mensaje"}` con estos códigos:
+---
+
+## 3. Levantar todo en tu compu (desarrollo)
+
+Se usan **dos terminales**, una para el back y otra para el front.
+
+### Paso 1: abrir Docker Desktop
+
+Abrí la aplicación y esperá a que diga que está corriendo (*Engine running*).
+
+### Paso 2: levantar la base de datos
+
+```
+cd TecnoShop
+docker compose up -d
+```
+
+Queda corriendo en segundo plano, en `localhost:5433`. La primera vez tarda un poco porque descarga la imagen de PostgreSQL.
+
+### Paso 3: levantar el back (terminal 1)
+
+```
+cd TecnoShop
+mvn compile exec:java
+```
+
+La primera vez Maven descarga las librerías y tarda un par de minutos. Está listo cuando aparece:
+
+```
+API escuchando en el puerto 8080
+```
+
+**Dejá esta terminal abierta**: si la cerrás, se apaga el back.
+
+Al arrancar por primera vez, el back hace tres cosas solo:
+- crea las tablas de la base;
+- crea el usuario `admin@tecnoshop.com` con contraseña `admin1234`;
+- carga 12 productos de ejemplo.
+
+### Paso 4: levantar el front (terminal 2)
+
+```
+cd TecnoShop-front
+python3 -m http.server 5500
+```
+
+### Paso 5: entrar
+
+Abrí **http://localhost:5500** e ingresá con:
+
+- **Email:** `admin@tecnoshop.com`
+- **Contraseña:** `admin1234`
+
+### Para apagar todo
+
+- **Back y front:** `Ctrl + C` en cada terminal.
+- **Base de datos:** `docker compose down`. Los datos quedan guardados para la próxima vez.
+
+> Ojo: `docker compose down -v` **borra la base de datos**. Usalo solo si querés empezar de cero.
+
+---
+
+## 4. Ver la base de datos
+
+Para entrar a la consola de PostgreSQL:
+
+```
+docker exec -it tecnoshop-postgres psql -U tecnoshop -d tecnoshop_db
+```
+
+Ahí escribís SQL (siempre terminado en `;`):
+
+```sql
+SELECT * FROM productos;
+SELECT * FROM compras;
+```
+
+Para salir: `\q`.
+
+Las tablas son `usuarios`, `proveedores`, `productos`, `compras` y `detalle_compras`. Las columnas van en minúscula, por ejemplo `stockminimo`.
+
+---
+
+## 5. Problemas comunes
+
+| Problema | Solución |
+|---|---|
+| `Cannot connect to the Docker daemon` | Docker Desktop no está abierto. Abrilo y esperá a que arranque. |
+| `Address already in use` / puerto 8080 o 5500 ocupado | Ya tenés el back o el front corriendo en otra terminal. Cerralo con `Ctrl + C`. |
+| El back no arranca y dice `Connection refused` | La base no está levantada: `docker compose up -d`. |
+| El front dice "No se pudo conectar con el servidor" | El back no está corriendo (paso 3). |
+| Me olvidé la contraseña del admin | Solo se crea si la base no tiene usuarios. Para empezar de cero: `docker compose down -v` y `docker compose up -d` (se borra todo). |
+| `java -version` no dice 21 | Instalá el JDK 21 y revisá que sea el que usa la terminal. |
+
+---
+
+## 6. Cómo está organizado el código
+
+```
+src/main/java/com/tecnoshop/
+├── Main.java          arranca todo
+├── api/               rutas HTTP: reciben el JSON, llaman al controlador y devuelven la respuesta
+├── controlador/       reglas de negocio y validaciones (RF01 – RF17)
+├── manejador/         acceso a la base de datos (Hibernate)
+├── model/             entidades (tablas)
+├── dto/               datos que se devuelven al front
+├── enums/             EstadoCompra (PENDIENTE, CONFIRMADA, CANCELADA)
+├── excepciones/       errores del dominio (NoExisteProducto, PrecioInvalido, ...)
+└── util/              configuración, validaciones, conexión y datos iniciales
+
+src/main/resources/db/migration/   scripts SQL que crean y actualizan las tablas (Flyway)
+```
+
+Una petición recorre este camino:
+
+**front → `api/` → `controlador/` → `manejador/` → base de datos**
+
+Los requisitos funcionales están en [REQUISITOS_FUNCIONALES.md](REQUISITOS_FUNCIONALES.md).
+
+---
+
+## 7. La API
+
+Todas las rutas empiezan con `/api`. Hay que **iniciar sesión** para usarlas:
+
+1. `POST /api/login` con `{"email": "...", "password": "..."}` devuelve un `token`.
+2. En cada petición se manda el header `Authorization: Bearer <token>`.
+
+Las únicas rutas que no piden sesión son `POST /api/login` y `GET /api/salud`.
+
+| Recurso | Rutas |
+|---|---|
+| Productos | `GET /productos`, `GET /productos/por-acabar`, `GET /productos/{id}`, `POST /productos`, `PUT /productos/{id}`, `PUT /productos/{id}/disponible` |
+| Proveedores | `GET /proveedores`, `GET /proveedores/{id}`, `POST /proveedores`, `PUT /proveedores/{id}`, `DELETE /proveedores/{id}` |
+| Compras | `GET /compras` (filtros `?usuarioId=`, `?proveedorId=`, `?desde=&hasta=`), `GET /compras/{id}`, `GET /compras/{id}/detalles`, `POST /compras`, `POST /compras/{id}/detalles`, `PUT /compras/{id}/confirmar`, `PUT /compras/{id}/cancelar` |
+| Usuarios | `GET /usuarios`, `POST /usuarios`, `PUT /usuarios/{id}/activo`, `GET /sesion` |
+
+Los errores vuelven como `{"error": "mensaje"}` con este código HTTP:
 
 | Código | Cuándo |
 |---|---|
@@ -74,3 +185,89 @@ Los errores vuelven como `{"error": "mensaje"}` con estos códigos:
 | 404 | No existe |
 | 409 | Duplicado o conflicto |
 | 429 | Demasiados intentos de login |
+
+---
+
+## 8. Subirlo a un servidor (producción)
+
+En producción se levantan tres contenedores con un solo comando:
+
+- **db:** PostgreSQL. No queda expuesta a internet.
+- **backend:** la API. Tampoco queda expuesta; corre sin permisos de administrador.
+- **frontend:** nginx. Es lo único expuesto: sirve el front y reenvía `/api` al back.
+
+### Paso 1: clonar los dos repos en el servidor, uno al lado del otro (igual que en el punto 2)
+
+### Paso 2: crear el archivo de configuración
+
+```
+cd TecnoShop
+cp .env.example .env
+```
+
+Abrí `.env` y completá:
+
+- **`DB_PASSWORD`:** una contraseña larga para la base.
+- **`JWT_SECRET`:** la clave que firma las sesiones. Generala con `openssl rand -base64 48`.
+- **`ADMIN_EMAIL` y `ADMIN_PASSWORD`:** el primer usuario, para poder entrar.
+
+> El archivo `.env` tiene contraseñas: **nunca lo subas a git** (ya está en `.gitignore`).
+
+### Paso 3: levantar
+
+```
+docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+```
+
+La app queda en el puerto 80 del servidor, o en el que pongas en `PUERTO_WEB`.
+
+**Importante: HTTPS.** Este compose sirve HTTP. Si el servidor es público, ponele adelante un proxy con certificado, por ejemplo [Caddy](https://caddyserver.com/). Sin eso, las contraseñas viajan sin cifrar.
+
+### Actualizar a una versión nueva
+
+```
+git pull
+docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+```
+
+Si la versión nueva trae cambios en las tablas, se aplican solos al arrancar.
+
+### Backup de la base
+
+```
+docker compose -f docker-compose.prod.yml exec db pg_dump -U tecnoshop tecnoshop_db > backup.sql
+```
+
+---
+
+## 9. Configuración (variables de entorno)
+
+En desarrollo no hace falta configurar nada. En producción se definen en el archivo `.env`.
+
+| Variable | Qué hace | En desarrollo |
+|---|---|---|
+| `APP_ENV` | Con `prod`, exige las variables sensibles | `dev` |
+| `DB_URL`, `DB_USER`, `DB_PASSWORD` | Conexión a PostgreSQL | la base de `docker-compose.yml` |
+| `JWT_SECRET` | Clave que firma las sesiones (mínimo 32 caracteres en prod) | una fija de desarrollo |
+| `JWT_HORAS` | Cuánto dura la sesión | `8` |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Primer usuario (solo si no hay ninguno) | `admin@tecnoshop.com` / `admin1234` |
+| `CARGAR_DATOS` | Cargar los productos de ejemplo | `true` |
+| `CORS_ORIGENES` | Qué sitios pueden llamar a la API desde el navegador | `http://localhost:5500` |
+| `CONFIAR_EN_PROXY` | Usar la IP real que manda nginx (para el límite de intentos de login) | `false` |
+| `MOSTRAR_SQL` | Mostrar las consultas SQL en la consola | `false` |
+| `PORT` | Puerto de la API | `8080` |
+
+---
+
+## 10. Cambiar las tablas de la base
+
+Las tablas las crean los scripts de `src/main/resources/db/migration`, que se ejecutan solos al arrancar. Hibernate **no** modifica las tablas; solo revisa que coincidan con las entidades.
+
+Para agregar o cambiar una columna:
+
+1. Creá un archivo nuevo con el número siguiente, por ejemplo `V3__agregar_columna.sql`, con el `ALTER TABLE`.
+2. Actualizá la entidad en `model/`.
+
+**Nunca edites un script que ya corrió**: siempre se crea uno nuevo.
+
+Si la entidad y la tabla no coinciden, el back no arranca y el error dice qué columna falta.
