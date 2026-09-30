@@ -16,6 +16,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "compras")
@@ -26,6 +27,9 @@ public class Compra {
     @Enumerated(EnumType.STRING)
     private EstadoCompra estado;
     private LocalDate fecha;
+
+    @Version
+    private int version;
 
     @ManyToOne
     @JoinColumn(name = "usuario_id")

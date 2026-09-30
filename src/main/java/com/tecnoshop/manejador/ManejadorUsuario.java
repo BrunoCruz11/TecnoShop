@@ -15,7 +15,7 @@ public class ManejadorUsuario{
     private ManejadorUsuario() {
     }
 
-    public static ManejadorUsuario getInstancia() {
+    public static synchronized ManejadorUsuario getInstancia() {
         if (instancia == null) {
             instancia = new ManejadorUsuario();
         }
@@ -112,7 +112,7 @@ public class ManejadorUsuario{
     public Usuario obtenerUsuarioPorEmail(String email){
         EntityManager em = HibernateUtil.getEntityManager();
         try{
-            List<Usuario> usuarios = em.createQuery("SELECT u FROM Usuario u WHERE u.email = :email", Usuario.class)
+            List<Usuario> usuarios = em.createQuery("SELECT u FROM Usuario u WHERE LOWER(u.email) = LOWER(:email)", Usuario.class)
                     .setParameter("email", email)
                     .getResultList();
             return usuarios.isEmpty() ? null : usuarios.get(0);
@@ -125,7 +125,7 @@ public class ManejadorUsuario{
     public boolean existeUsuario (String email){
         EntityManager em = HibernateUtil.getEntityManager();
         try{
-            List<Usuario> usuarioABuscar = em.createQuery("SELECT u FROM Usuario u WHERE u.email = :email", Usuario.class)
+            List<Usuario> usuarioABuscar = em.createQuery("SELECT u FROM Usuario u WHERE LOWER(u.email) = LOWER(:email)", Usuario.class)
                     .setParameter("email", email)
                     .getResultList();
             return !usuarioABuscar.isEmpty();

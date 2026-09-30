@@ -15,21 +15,19 @@
         <class>com.tecnoshop.model.Detalle_compra</class>
 
         <properties>
-            <!-- Conexión a la base de datos (coincide con docker-compose.yml) -->
-            <property name="jakarta.persistence.jdbc.url" value="jdbc:postgresql://localhost:5433/tecnoshop_db"/>
-            <property name="jakarta.persistence.jdbc.user" value="tecnoshop"/>
-            <property name="jakarta.persistence.jdbc.password" value="tecnoshop"/>
+            <!-- La URL, el usuario y la contraseña de la base NO van aca: los pone HibernateUtil
+                 a partir de variables de entorno (ver util/Config.java). -->
             <property name="jakarta.persistence.jdbc.driver" value="org.postgresql.Driver"/>
 
-            <!-- Dialecto: Hibernate 6 lo detecta solo, pero se puede fijar explícitamente -->
-            <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
+            <!-- El esquema lo crean las migraciones de Flyway (src/main/resources/db/migration).
+                 Hibernate solo valida que las entidades coincidan con las tablas; si no coinciden, no arranca. -->
+            <property name="hibernate.hbm2ddl.auto" value="validate"/>
 
-            <!-- Crea/actualiza las tablas automáticamente en desarrollo.
-                 Cambiar a "validate" o "none" en producción. -->
-            <property name="hibernate.hbm2ddl.auto" value="update"/>
+            <!-- Pool de conexiones HikariCP (el pool que trae Hibernate por defecto no es para produccion) -->
+            <property name="hibernate.hikari.maximumPoolSize" value="10"/>
+            <property name="hibernate.hikari.minimumIdle" value="2"/>
 
-            <!-- Muestra el SQL generado en consola (útil para aprender/depurar) -->
-            <property name="hibernate.show_sql" value="true"/>
+            <!-- Mostrar el SQL se activa con la variable de entorno MOSTRAR_SQL=true -->
             <property name="hibernate.format_sql" value="true"/>
         </properties>
     </persistence-unit>

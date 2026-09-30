@@ -1,0 +1,50 @@
+# Produccion: base de datos + back + front (nginx).
+#   1. cp .env.example .env   y completar los valores
+#   2. docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+# Solo nginx publica un puerto; la base y el back quedan en la red interna de docker.
+name: tecnoshop-prod
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:?Falta DB_USER en .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD en .env}
+      POSTGRES_DB: ${DB_NAME:-tecnoshop_db}
+    volumes:
+      - datos_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_ENV: prod
+      DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-tecnoshop_db}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?Falta JWT_SECRET en .env}
+      JWT_HORAS: ${JWT_HORAS:-8}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      CARGAR_DATOS: ${CARGAR_DATOS:-false}
+
+  frontend:
+    build: ../TecnoShop-front
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${PUERTO_WEB:-80}:8080"
+
+volumes:
+  datos_db:

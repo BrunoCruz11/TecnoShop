@@ -4,17 +4,19 @@ import java.util.List;
 
 import com.tecnoshop.dto.UsuarioDTO;
 import com.tecnoshop.excepciones.CredencialesInvalidasException;
+import com.tecnoshop.excepciones.DatosInvalidosException;
 import com.tecnoshop.excepciones.ExisteUsuarioException;
+import com.tecnoshop.excepciones.NoExisteUsuarioException;
 import com.tecnoshop.excepciones.UsuarioInactivoException;
 
 public interface IUsuarioControlador {
-    void registrarUsuario(String nombre, String email, String password, boolean activo) throws ExisteUsuarioException;
+    void registrarUsuario(String nombre, String email, String password, boolean activo) throws ExisteUsuarioException, DatosInvalidosException;
     UsuarioDTO obtenerUsuarioPorId(int id);
     List<UsuarioDTO> obtenerTodosLosUsuarios();
-    void activarUsuario(int id);
-    void desactivarUsuario(int id);
-    void cambiarNombreUsuario(int id, String nombre);
-    void cambiarEmailUsuario(int id, String email) throws ExisteUsuarioException;
-    void cambiarPasswordUsuario(int id, String password);
+    void activarUsuario(int id) throws NoExisteUsuarioException;
+    void desactivarUsuario(int id) throws NoExisteUsuarioException;
+    void cambiarNombreUsuario(int id, String nombre) throws NoExisteUsuarioException, DatosInvalidosException;
+    void cambiarEmailUsuario(int id, String email) throws NoExisteUsuarioException, ExisteUsuarioException, DatosInvalidosException;
+    void cambiarPasswordUsuario(int id, String password) throws NoExisteUsuarioException, DatosInvalidosException;
     UsuarioDTO login(String email, String password) throws CredencialesInvalidasException, UsuarioInactivoException;
 }
