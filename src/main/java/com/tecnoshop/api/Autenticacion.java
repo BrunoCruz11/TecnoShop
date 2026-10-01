@@ -10,9 +10,11 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.tecnoshop.controlador.IUsuarioControlador;
 import com.tecnoshop.controlador.UsuarioControlador;
 import com.tecnoshop.dto.UsuarioDTO;
+import com.tecnoshop.enums.Rol;
 import com.tecnoshop.util.Config;
 
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.UnauthorizedResponse;
 
 /**
@@ -60,6 +62,13 @@ public final class Autenticacion {
             throw new UnauthorizedResponse("El usuario no existe o esta inactivo");
         }
         ctx.attribute(ATRIBUTO_USUARIO, usuario);
+    }
+
+    // corta con 403 si el usuario de la sesion no es administrador
+    public static void exigirAdmin(Context ctx) {
+        if (usuario(ctx).getRol() != Rol.ADMIN) {
+            throw new ForbiddenResponse("Solo un administrador puede hacer esto");
+        }
     }
 
     // el usuario que hizo la peticion (lo dejo verificar())

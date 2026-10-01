@@ -13,6 +13,7 @@
         <class>com.tecnoshop.model.Proveedor</class>
         <class>com.tecnoshop.model.Producto</class>
         <class>com.tecnoshop.model.Detalle_compra</class>
+        <class>com.tecnoshop.model.Resena</class>
 
         <properties>
             <!-- La URL, el usuario y la contraseña de la base NO van aca: los pone HibernateUtil

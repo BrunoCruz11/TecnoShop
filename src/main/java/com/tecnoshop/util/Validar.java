@@ -52,6 +52,18 @@ public final class Validar {
         }
     }
 
+    // imagen opcional: una URL http(s) o una ruta del front (img/...). Nada de "javascript:" ni otros esquemas
+    public static String imagenUrl(String valor) throws DatosInvalidosException {
+        String limpio = textoOpcional(valor, "imagen", 500);
+        if (limpio.isEmpty()) {
+            return null;
+        }
+        if (!limpio.startsWith("https://") && !limpio.startsWith("http://") && !limpio.startsWith("img/")) {
+            throw new DatosInvalidosException("La imagen tiene que ser una URL que empiece con http:// o https://");
+        }
+        return limpio;
+    }
+
     public static void noNegativo(double numero, String campo) throws DatosInvalidosException {
         if (!Double.isFinite(numero) || numero < 0) {
             throw new DatosInvalidosException("El campo " + campo + " no puede ser negativo");
